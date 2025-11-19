@@ -1,0 +1,949 @@
+{
+  "welcome": "Nets4Learningへようこそ",
+  "welcome-2": "続けるには、以下の分野から一つ選択してください",
+  "list_map": "<1></1>",
+  "layer-id": "レイヤー {{index}}",
+  "map_item": "<0></0>",
+  "loading": "読み込み中",
+  "Loading": "読み込み中",
+  "upload": "アップロード",
+  "example-i": "例 {{i}}",
+  "Files": "ファイル",
+  "wait-document": "ドキュメントを待機中",
+  "references": "参照",
+  "download": "ダウンロード",
+  "DataFrame": "データフレーム",
+  "Features": "特徴量",
+  "{{X_feature}} x {{target}}": "{{X_feature}} x {{target}}",
+  "Predicted": "予測結果",
+  "Waiting": "待機中",
+  "waiting": "待機中",
+  "and": "と",
+  "dataset": {
+    "__index__": "データセット {{index}}"
+  },
+  "model": {
+    "__index__": "モデル {{index}}"
+  },
+  "instance": {
+    "__index__": "インスタンス {{index}}"
+  },
+  "more-information-in-link": "詳細は<link1>こちらのリンク</link1>から",
+  "more-information-in-tutorial": "<link1>こちらのチュートリアル</link1>をご利用ください",
+  "downloaded": "ダウンロード済み",
+  "downloading": "ダウンロード中",
+  "Data set processing": "データセット処理",
+  "Column target": "予測対象列",
+  "Scaler": "スケーラー",
+  "Processed": "処理済み",
+  "Default": "デフォルト",
+  "Need permissions": "権限が必要です",
+  "Get Screenshot": "スクリーンショットを取得",
+  "ASL": "アメリカ手話",
+  "SSL": "スペイン手話",
+  "Info Hand sign": "手話に関する情報",
+  "Info": "情報",
+  "Target": "目的",
+  "Update": "更新",
+  "Reference": "参照",
+  "Predict": "予測",
+  "selector-dataset": "データセット選択",
+  "selector-model": "モデル選択",
+  "selector-instance": "インスタンス選択",
+  "Device info": "デバイス情報",
+  "__VOID__": null,
+  "prediction-input": "元のデータ",
+  "prediction-input-description": "スケーリングとエンコード前の元のデータ",
+  "prediction-input-encoding": "処理済みエンコードデータ",
+  "prediction-input-encoding-description": "ラベルエンコーダでエンコード後の処理済みデータ",
+  "prediction-input-scaling": "処理済みスケーリングデータ",
+  "prediction-input-scaling-description": "MinMaxScalerでスケーリング後の処理済みデータ",
+  "prediction-input-processed": "処理済みデータ",
+  "prediction-input-processed-description": "スケーリングとエンコード後の処理済みデータ",
+  "prediction-result": "予測結果",
+  "prediction-result-description": "予測の最終結果",
+  "Validate": "検証",
+  "Layers": "レイヤー",
+  "Classify": "分類",
+  "Types of layers": "レイヤーの種類",
+  "equations": {
+    "title": "計算式",
+    "title-metrics": "評価関数 | 計算式",
+    "title-losses": "損失関数 | 計算式",
+    "title-activation": "活性化関数 | 計算式",
+    "title-optimization": "最適化関数 | 計算式",
+    "loss-functions": {
+      "huber-loss": {
+        "title": "Huber Loss (フーバー損失)",
+        "text-1": "外れ値に対してMSEよりも感度が低く、誤差をある区間内でのみ二乗として扱います。"
+      },
+      "cross-entropy": {
+        "title": "Cross Entropy (交差エントロピー)",
+        "text-1": "二項分類 (クラス数 $M=2$) の場合、二項交差エントロピー (BCE) は次のように計算できます：",
+        "text-2": "$M > 2$ (多クラス分類) の場合、各観測値のクラスラベルごとに個別の損失を計算し、その合計を求めます。",
+        "text-3": "$M$: クラス数 <br />$log$: 自然対数  <br />$y$: 観測値 $o$ のクラスラベル $c$ が正しい分類である場合のバイナリインジケータ (0または1) <br />$p$: 観測値 $o$ がクラス $c$ に属する予測確率"
+      },
+      "negative-log": {
+        "title": "Negative Loglikelihood (負の対数尤度)",
+        "text-1": "負の対数尤度を最小化することは",
+        "text-2": "最尤推定 (MLE) と同等です。"
+      },
+      "kj-divergence": {
+        "title": "KL/JS divergence (KL/JSダイバージェンス)"
+      },
+      "hinge-loss": {
+        "title": "Hinge loss (ヒンジ損失)"
+      },
+      "mae": {
+        "title": "Mean Absolute Error (MAE) (平均絶対誤差)"
+      },
+      "mse": {
+        "title": "Mean Squared Error (MSE) (平均二乗誤差)"
+      },
+      "rmse": {
+        "title": "Root Mean Square Error (RMSE) (二乗平均平方根誤差)"
+      },
+      "cosine-distance": {
+        "title": "Cosine Proximity / Cosine Similarity (コサイン類似度/近接度)"
+      }
+    },
+    "metric-functions": {
+      "accuracy": {
+        "title": "Accuracy (正解率)"
+      },
+      "precision": {
+        "title": "Precision (精度)"
+      },
+      "recall": {
+        "title": "Recall (再現率)"
+      },
+      "f1": {
+        "title": "F1"
+      },
+      "sensitivity": {
+        "title": "Sensitivity (感度)"
+      },
+      "acc-prec-recall-f1": {
+        "title": "Accuracy, Precision, Recall, F1"
+      },
+      "sen-spe-auc": {
+        "title": "Sensitivity, Specificity, and AUC (感度、特異度、AUC)",
+        "text-1": "AUCは、$Sensitivity$ (真陽性率: TPR) - $(1-Specificity)$ (偽陽性率: FPR) 曲線の下面積として計算されます。"
+      }
+    }
+  },
+  "datasets": {
+    "title": "データセット",
+    "upload-dataset": null,
+    "text-0": "表形式分類用のデータセットをダウンロード",
+    "dataset-name": "データセット名",
+    "dataset-size": "サンプル数",
+    "dataset-web": "元のウェブサイト",
+    "dataset-reference": "参照元",
+    "download-dataset-car": "自動車評価データセット",
+    "download-dataset-hepatitis-c": "C型肝炎データセット",
+    "download-dataset-iris": "アヤメ(Iris)データセット",
+    "download-dataset-titanic": "タイタニック生存データセット*",
+    "download-dataset-new-thyroid": "New Thyroidデータセット",
+    "download-dataset-wine": "ワインデータセット",
+    "download-dataset-ecoli": "E.coliデータセット",
+    "download": {
+      "dataset": {
+        "1-regression": {
+          "salary": "給与データセット",
+          "auto-mpg": "燃費データセット",
+          "housing-prices": "住宅価格データセット",
+          "breast-cancer-original": "ウィスコンシン乳がんデータセット",
+          "breast-cancer-wdbc": "ウィスコンシン乳がん (診断) データセット",
+          "breast-cancer-wpbc": "ウィスコンシン乳がん (予後) データセット",
+          "student-performance-mathematics": "数学の学生成績データセット",
+          "student-performance-portuguese": "ポルトガル語の学生成績データセット",
+          "wine-red": "赤ワインデータセット",
+          "wine-white": "白ワインデータセット"
+        }
+      }
+    }
+  },
+  "dataframe-original": "データフレーム | 元データ",
+  "dataframe-form": "データフレーム | 処理フォーム",
+  "dataframe": {
+    "dataframe": {
+      "title": "データフレーム | データセット"
+    },
+    "dataset": {
+      "title": "データセット"
+    },
+    "correlation-matrix": {
+      "title": "データフレーム | 相関行列",
+      "description": {
+        "0": "ピアソン相関係数 (線形相関または積率相関係数とも呼ばれる) は、2つの量的変数間の線形関係を定量化するために使用される統計的尺度です。最も一般的に使用される相関係数の一つであり、変数間の関係の強さと方向に関する情報を提供します。",
+        "1": "ピアソン相関係数は-1から1の範囲で変化します：",
+        "2": "値が-1の場合、完全に負の線形相関を示します。これは、一方が増加すると、他方が逆の線形関係で減少することを意味します。",
+        "3": "値が1の場合、完全に正の線形相関を示します。これは、一方が増加すると、他方も直接的な線形関係で増加することを意味します。",
+        "4": "値が0の場合、変数間に線形相関がないことを示します。これは、それらの間に線形関係がないことを意味します。",
+        "5": "ピアソン相関係数の計算は、2つの変数の共分散と標準偏差に基づいています。数学的には次のように計算されます：",
+        "6": "ここで：",
+        "7": "は、各観測値における2つの変数の値です。",
+        "8": "は、それぞれ2つの変数の平均です。",
+        "9": "ピアソン相関係数は、2つの変数間の線形関係を分析し、それらの間に相関があるかどうかを判断するための便利なツールです。科学研究、経済学、心理学、社会学など、さまざまな分野で広く使用されており、2つの変数がどのように連携しているかを理解するのに役立ちます。ただし、ピアソン相関係数は線形関係のみを測定するものであり、変数間の他の種類の非線形関係を捉えるものではないことに注意することが重要です。",
+        "title": "説明"
+      },
+      "link": "詳細は<link1>こちらのリンク</link1>をご覧ください",
+      "plot": "相関行列"
+    },
+    "describe": {
+      "title": "データフレーム | 要約統計量",
+      "description": {
+        "0": "この関数は、データフレームの数値列の統計的要約を生成するために使用されます。平均、標準偏差、最小値、最大値、および数値列のさまざまな四分位数など、主要な記述統計量を提供します。これは、データの分布と傾向をすばやく把握するのに役立ちます。",
+        "1": "この関数は、データの分布をすばやく把握し、データ内の外れ値や異常値を特定するのに役立ちます。",
+        "title": "説明"
+      },
+      "link": "詳細は<link1>こちらのリンク</link1>をご覧ください"
+    },
+    "query": {
+      "title": "データフレーム | クエリ",
+      "description": {
+        "0": "論理比較またはブールマスクの結果に基づいてデータフレームをクエリします。",
+        "1": "論理比較を連結して独自のクエリを作成できます。比較方法の例を次に示します。",
+        "title": "説明"
+      },
+      "query": "クエリ",
+      "link": "詳細は<link1>こちらのリンク</link1>をご覧ください"
+    },
+    "plot": {
+      "link": "詳細は<link1>こちらのリンク</link1>をご覧ください"
+    }
+  },
+  "dataframe-processed": "データフレーム | 処理済み",
+  "dataframe-scatterplot": {
+    "title": "散布図"
+  },
+  "model-selector": {
+    "title": "モデル選択"
+  },
+  "form": {
+    "select-dataset": {
+      "title": "データセットを選択",
+      "info": "データセットを選択"
+    }
+  },
+  "preprocessing": {
+    "title": "前処理",
+    "transformations-columns": "列ごとの変換",
+    "transformations-set-X": "Xセットの変換",
+    "transformations-set-Y": "Yセットの変換"
+  },
+  "prediction": "予測",
+  "prediction-class": "予測クラス: {{num}}",
+  "model-loaded-successfully": "モデルが正常に読み込まれました",
+  "predict": "予測",
+  "cookies-policies": {
+    "title": "クッキーポリシー",
+    "text-0": "このウェブサイトは、ユーザーエクスペリエンスを向上させ、アプリケーションの使用状況を分析するためにクッキーを使用しています。クッキーは、お客様が当社のウェブサイトを訪問したときにデバイスに保存される小さなテキストファイルです。これらのクッキーは、ユーザーが当社のウェブサイトとどのようにやり取りしているか、どのページが最も訪問されているか、およびユーザーエクスペリエンスをどのように改善できるかを理解するのに役立ちます。",
+    "text-1": "当社は、広告目的でお客様のデータを処理することはありません。クッキーは、分析目的およびウェブサイトの機能を向上させる目的でのみ使用します。当社のウェブサイトを引き続き使用する場合、お客様は当社のプライバシーポリシーに記載されているクッキーの使用に同意したものと見なされます。",
+    "accept": "同意する"
+  },
+  "error": {
+    "load-json-csv": "エラー：ファイルを読み込めませんでした",
+    "need-to-upload-image": "最初に画像をアップロードする必要があります",
+    "need-dataset": "最初にデータをロードする必要があります",
+    "model-selected": "モデルの選択エラー",
+    "tensor-shape": "テンソルの形状が正しくありません",
+    "tensor-shape-description": "テンソルの形状が正しくありません。形状 [{{target_tensor_shape_0}},{{target_tensor_shape_1}}] が期待されましたが、形状 [{{tensor_shape_0}},{{tensor_shape_1}}] のテンソルが受信されました。おそらく最後のレイヤーを修正する必要があります。",
+    "tensor-shape-change": "出力レイヤーの形状は (* ,{{last_layer_units}}) です。<br> 形状を (*, {{classes_length}}) にする必要があります",
+    "need-one-feature": "少なくとも1つの特徴量が必要です。",
+    "new-element-need-to-be-unique": "Xセットの要素は一意である必要があります。",
+    "layers-length": "ニューロン数とその活性化関数を持つレイヤーが少なくとも1つ必要です",
+    "parsing-csv": "データセットの準備エラー",
+    "file-not-valid": "エラー：ファイルが無効です",
+    "metrics-length": "エラー：メトリクス数は1から10の間である必要があります"
+  },
+  "warning": {
+    "the-first-layer-need-to-be-__value__": "警告：最初のレイヤーはタイプ {{value}} である必要があります",
+    "not-more-layers": "警告：これ以上レイヤーを追加することはできません",
+    "error-layers": "警告：レイヤーは1から10の間である必要があります",
+    "need-a-model": "警告：最初にモデルを作成し、トレーニングする必要があります。"
+  },
+  "success": {
+    "file-upload": "ファイルが正常にアップロードされました"
+  },
+  "info": {
+    "the-class-is-__value__": "クラスはインデックス {{value}} ですか？"
+  },
+  "alert": {
+    "menu": {
+      "need-select-dataset": "データセットを選択する必要があります",
+      "need-select-model": "モデルを選択する必要があります"
+    },
+    "0-tabular-classification": {
+      "not-more-layers": "これ以上レイヤーを追加できません"
+    },
+    "model-load-success": "モデルが読み込まれました",
+    "error": "エラー",
+    "warning": "警告",
+    "success": "成功",
+    "info": "情報",
+    "model-train-success": "モデルのトレーニングに成功しました",
+    "prediction": "予測結果: {{index}}",
+    "file-upload-success": "ファイルのアップロードに成功しました",
+    "file-upload-error-incorrect-format": "ファイルの形式が正しくありません",
+    "need-select-dataset": "データセットを選択する必要があります"
+  },
+  "header": {
+    "language": "言語",
+    "manual": "マニュアル",
+    "glossary": "用語集",
+    "home": "ホーム",
+    "datasets": "データセット",
+    "theme": "テーマ",
+    "dataframe": "データフレーム",
+    "analyze": "AED (探索的データ分析)"
+  },
+  "footer": {
+    "description-app": "深層学習モデルの設計と実行のためのウェブプラットフォーム。",
+    "about-us": "私たちについて",
+    "developers": "開発者",
+    "directors": "指導者",
+    "maintainers": "保守と改善",
+    "terms": "利用規約",
+    "contribute": "貢献する",
+    "documentation": "ドキュメント",
+    "version": "バージョン"
+  },
+  "drag-and-drop": {
+    "label-files-one": "ファイル:",
+    "label-files-more": "ファイル:",
+    "image": "画像例を追加",
+    "binary": "バイナリファイルを追加",
+    "json": "JSONファイルを追加",
+    "csv": "CSVファイルを追加",
+    "csv-json": "テンプレートデータファイル template.json を入力"
+  },
+  "custom-canvas-drawer": {
+    "validate": "検証",
+    "clear": "クリア"
+  },
+  "table": {
+    "dataset": "データセット"
+  },
+  "modality": {
+    "0": "表形式分類",
+    "1": "回帰",
+    "2": "物体認識",
+    "3": "画像分類",
+    "tabular-classification": "表形式分類",
+    "regression": "回帰",
+    "object-detection": "物体認識",
+    "image-classification": "画像分類"
+  },
+  "graphic-red": {
+    "input": "入力",
+    "output": "出力"
+  },
+  "datasets-models": {
+    "0-tabular-classification": {
+      "upload": {
+        "html-example": {
+          "text": "値をセミコロンで区切って入力してください。",
+          "items": "(パラメータ-1; パラメータ-2; パラメータ-3; ... ; パラメータ-n)。"
+        }
+      },
+      "car": {
+        "title": "CAR - 車両評価分類",
+        "description": {
+          "text-1": "<i>Car Evaluation</i> データセットは、次の構造を通じて車両を評価できます",
+          "text-2": "このデータセットの詳細については、<link1>ics.uci.edu</link1>リポジトリをご覧ください。",
+          "details-1": {
+            "title": "情報",
+            "list": {
+              "1": "<b>buying:</b> 購入価格。",
+              "2": "<b>maint:</b> 維持費。",
+              "3": "<b>doors:</b> ドア数。",
+              "4": "<b>persons:</b> 乗車定員。",
+              "5": "<b>lug_boot:</b> トランクのサイズ。",
+              "6": "<b>safety:</b> 車両の推定安全性。"
+            }
+          },
+          "details-2": {
+            "title": "入力データ",
+            "text-1": "車両の特徴",
+            "list": {
+              "1": "<b>buying:</b> vhigh (非常に高い), high (高い), med (中), low (低い)。",
+              "2": "<b>maint:</b> vhigh, high, med, low。",
+              "3": "<b>doors:</b> 2, 3, 4, 5more (5以上)。",
+              "4": "<b>persons:</b> 2, 4, more (それ以上)。",
+              "5": "<b>lug_boot:</b> small (小), med (中), big (大)。",
+              "6": "<b>safety:</b> low, med, high (高)。"
+            }
+          },
+          "details-3": {
+            "title": "出力データ",
+            "text-1": "車両の受容性",
+            "list": {
+              "1": "<b>UNACC</b>: 受け入れられない",
+              "2": "<b>ACC</b>: 受け入れられる",
+              "3": "<b>GOOD</b>: 良い",
+              "4": "<b>VGOOD</b>: 非常に良い"
+            }
+          },
+          "details-4": {
+            "title": "参照元",
+            "list": {
+              "1": "データセット"
+            }
+          }
+        },
+        "html-example": {
+          "text": "評価する車両の対応する値を入力してください：",
+          "items": "(buying; maint; doors; persons; lug_boot; safety)",
+          "examples": "例:"
+        }
+      },
+      "iris": {
+        "title": "IRIS - アヤメ分類",
+        "description": {
+          "text-1": "Iris-Data データセットは、花弁と萼の高さと長さから、アヤメのどのタイプかを検出できます。",
+          "details-1": {
+            "title": "入力データ",
+            "list": {
+              "1": "<b>萼の長さ (Sepal length)</b>: 連続値",
+              "2": "<b>萼の幅 (Sepal width)</b>: 連続値",
+              "3": "<b>花弁の長さ (Petal length)</b>: 連続値",
+              "4": "<b>花弁の幅 (Petal width)</b>: 連続値"
+            }
+          },
+          "details-2": {
+            "title": "出力データ",
+            "list": {
+              "1": "<b>0</b>: Iris Setosa",
+              "2": "<b>1</b>: Iris Versicolor",
+              "3": "<b>2</b>: Iris Virginica"
+            }
+          },
+          "details-3": {
+            "title": "参照元",
+            "list": {
+              "1": "データセット"
+            }
+          }
+        },
+        "html-example": {
+          "text": "評価するアヤメに対応する値を入力してください：",
+          "items": "(萼の長さ; 萼の幅; 花弁の長さ; 花弁の幅)。",
+          "examples": "例:"
+        }
+      },
+      "lymphography": {
+        "title": "LYMPHOGRAPHY - リンパ腫データ分類",
+        "description": {
+          "text-1": "<i>lymphography</i> データセットは、リンパ腫の可能な病期と状態を検出できます。",
+          "details-input": {
+            "title": "入力データ",
+            "list": {
+              "0": "<b>lymphatics</b>: normal (正常), arched (アーチ状), deformed (変形), displaced (変位)",
+              "1": "<b>block of affere</b>: no (なし), yes (あり)",
+              "2": "<b>bl. of lymph. c</b>: no, yes",
+              "3": "<b>bl. of lymph. s</b>: no, yes",
+              "4": "<b>by pass</b>: no, yes",
+              "5": "<b>extravasates</b>: no, yes",
+              "6": "<b>regeneration of</b>: no, yes",
+              "7": "<b>early uptake in</b>: no, yes",
+              "8": "<b>lym.nodes dimin</b>: 0-3",
+              "9": "<b>lym.nodes enlar</b>: 1-4",
+              "10": "<b>changes in lym.</b>: bean (豆状), oval (卵型), round (円形)",
+              "11": "<b>defect in node</b>: no, lacunar (空隙), lac. marginal (空隙縁), lac. central (空隙中央)",
+              "12": "<b>changes in node</b>: no, lacunar, lac. margin, lac. central",
+              "13": "<b>changes in stru</b>: no, grainy (粒状), drop-like (滴状), coarse (粗い), diluted (希釈), reticular (網状), stripped (縞状), faint (かすか),",
+              "14": "<b>special forms</b>: no, chalices (杯状), vesicles (小胞)",
+              "15": "<b>dislocation of</b>: no, yes",
+              "16": "<b>exclusion of no</b>: no, yes",
+              "17": "<b>no. of nodes in</b>: 0-9, 10-19, 20-29, 30-39, 40-49, 50-59, 60-69, >=70"
+            }
+          },
+          "details-output": {
+            "title": "出力データ",
+            "list": {
+              "0": "<b>normal find</b>: normal (正常)",
+              "1": "<b>metastases</b>: metastasis (転移)",
+              "2": "<b>malign lymph</b>: malign lymphoma (悪性リンパ腫)",
+              "3": "<b>fibrosis</b>: fibrosis (線維症)"
+            }
+          },
+          "details-references": {
+            "title": "参照元",
+            "list": {
+              "0": "データセット"
+            }
+          }
+        },
+        "html-example": {
+          "text": "評価する患者の対応する値を入力してください：",
+          "items": "(lymphatics, block of affere, bl. of lymph. c, bl. of lymph. s, by pass, extravasates, regeneration of, early uptake in, lym.nodes dimin, lym.nodes enlar, changes in lym., defect in node, changes in node, changes in stru, special forms, dislocation of, exclusion of no, no. of nodes in)。",
+          "examples": "例:"
+        }
+      },
+      "list-datasets": {
+        "0-option-1": "データセット - 車両評価分類",
+        "0-option-2": "データセット - アヤメ分類",
+        "0-option-3": "データセット - リンパ腫分類"
+      },
+      "list-models": {
+        "0-option-1": "モデル - 車両評価分類",
+        "0-option-2": "モデル - アヤメ分類",
+        "0-option-3": "モデル - リンパ腫分類"
+      },
+      "joyride": {
+        "title": "チュートリアルを開始",
+        "steps": {
+          "manual": {
+            "title": "マニュアル",
+            "content": "情報を探すためにマニュアルを参照できます"
+          },
+          "dataset-info": {
+            "title": "データセット情報",
+            "content": "データセットを分析します"
+          },
+          "dataset": {
+            "title": "データセット",
+            "content": "データセットを表示し、その説明から統計情報を抽出できます"
+          },
+          "dataset-plot": {
+            "title": "データセットのグラフ",
+            "content": "さまざまなグラフ（棒グラフ、円グラフなど）を使用して、データセットを分析することで非常に重要な情報を抽出できます"
+          },
+          "layer-visualizer": {
+            "title": "ニューラルネットワーク層のビジュアライザー",
+            "content": "コンパクトモードと拡張モードの2つの形式で、レイヤー、活性化関数を表示できます"
+          },
+          "layer-editor": {
+            "title": "レイヤーエディタ",
+            "content": "ニューラルネットワークのレイヤーを編集したり、各レイヤーのニューロン数、活性化関数を変更したり、新しいレイヤーを追加したり削除したりできます。"
+          },
+          "params-editor": {
+            "title": "ハイパーパラメータエディタ",
+            "content": "トレーニングがデータセットに合わせてカスタマイズされるように、ニューラルネットワークのハイパーパラメータを設定できます。"
+          },
+          "list-of-models": {
+            "title": "モデルリスト",
+            "content": "モデルが生成されたら、モデルをロードまたはダウンロードして、各モデルをテストし、分類を実行できます。"
+          },
+          "classify-and-visualizer": {
+            "title": "分類と可視化",
+            "content": "表形式分類のモデルをロードしたら、分類を実行し、結果を可視化できます"
+          }
+        }
+      }
+    },
+    "1-regression": {
+      "salary": {
+        "title": "経験年数に基づく給与",
+        "description": {
+          "text": {
+            "0": "「Salary」データセットは、個人の職務経験年数とそれに対応する給与の関係を関連付ける情報のコレクションです。",
+            "1": "データセットの各エントリは、「Years of Experience」（経験年数）と「Salary」（給与）の2つの主要な変数で構成されています。「Years of Experience」変数は、従業員が特定の分野で働いた年数を表し、「Salary」変数は、その従業員が年間稼ぐ金額を表します。"
+          },
+          "link": "このデータセットの詳細については、<link1>www.kaggle.com</link1>リポジトリをご覧ください。",
+          "details-1-input": {
+            "title": "入力データ",
+            "list": {
+              "0": "Years of experience - 経験年数",
+              "1": "Salary - 給与"
+            }
+          },
+          "details-2-output": {
+            "title": "出力データ",
+            "list": {
+              "0": "計算された回帰 (<b>Salary</b>)"
+            }
+          },
+          "details-3-references": {
+            "title": "参照元",
+            "list": {
+              "0": "データセット 1",
+              "1": "データセット 2"
+            }
+          }
+        }
+      },
+      "auto-mpg": {
+        "title": "燃費性能",
+        "description": {
+          "text": {
+            "0": "<i>AUTO MPG</i> データセットは、カーネギーメロン大学で管理されているStatLibライブラリから取得されました。このデータセットは、1983年の米国統計学会の展示会で使用されました。",
+            "1": "「Auto MPG」という用語は、一般的に米国で使用される燃費効率の測定単位である「Millas por Galón」（ガロンあたりのマイル）を指します。この尺度は、車両が1ガロンの燃料で走行できるマイル数を示します。ただし、「Auto MPG」は英語の用語であり、スペイン語には直接的な翻訳はありません。\n\nスペイン語では、自動車の燃費効率を指すには、通常、「consumo de combustible」（燃料消費量）または「rendimiento de combustible」（燃費性能）という用語が使用されます。これらの用語は、車両が1リットルまたは1ガロンの燃料でそれぞれ走行できるキロメートルまたはマイル数を示します。\n\n国によって燃料消費量の測定単位が異なることに注意することが重要です。たとえば、一部の地域では、燃費効率を示すために、走行100キロメートルあたりのリットル数（L/100 km）が使用されます。",
+            "link": "このデータセットの詳細については、<link1>ics.uci.edu</link1>リポジトリをご覧ください。",
+            "details-0": {
+              "title": "情報",
+              "list": {
+                "0": "<b>MPG</b>: MPGはMillas por Galónの略です。これはインスタンスの特定の車両によって消費される燃料の量です。この変数は、任意の車両を予測するためのターゲット変数としても使用できます。",
+                "1": "<b>cylinders</b>: この属性は、各車両のシリンダー数を記述します。これは離散値の属性です",
+                "2": "<b>displacement</b>: これは、連続的な量的値を持つ車両の別の属性であり、エンジンの排気量を記述します",
+                "3": "<b>horsepower</b>: この属性は、車両の馬力を示し、連続的な値の量的変数です",
+                "4": "<b>weight</b>: 連続的な値の量的変数である各車両の重量を指します",
+                "5": "<b>acceleration</b>: 車両の加速度",
+                "6": "<b>model year</b>: モデルが発売された年",
+                "7": "<b>origin</b>: 発生源属性には3つの離散値があります。1は米国で製造された車、2はヨーロッパ、3はアジアを指します",
+                "8": "<b>car name</b>: テキストの車両名。"
+              }
+            },
+            "details-1": {
+              "title": "入力データ",
+              "list": {
+                "0": "<b>MPG</b>: 連続値",
+                "1": "<b>cylinders</b>: 離散多値、4, 6, 8",
+                "2": "<b>displacement</b>: 連続値",
+                "3": "<b>horsepower</b>: 連続値",
+                "4": "<b>weight</b>: 連続値",
+                "5": "<b>acceleration</b>: 連続値",
+                "6": "<b>model Year</b>: 離散多値",
+                "7": "<b>origin</b>: 離散多値、1は米国で製造された車、2はヨーロッパ、3はアジアを指します",
+                "8": "<b>car name</b>: テキスト（各インスタンスで一意）"
+              }
+            },
+            "details-2": {
+              "title": "出力データ",
+              "list": {
+                "0": "計算された回帰 (<b>MPG</b>)"
+              }
+            },
+            "details-3": {
+              "title": "参照元",
+              "list": {
+                "0": "<link1>Auto MPG</link1>"
+              }
+            }
+          }
+        }
+      },
+      "housing-prices": {
+        "title": "住宅価格",
+        "description": {
+          "text": {
+            "0": "ボストン住宅データセットは、米国国勢調査局がボストン地域の住宅について収集した情報から派生しています。",
+            "1": "このデータセットは、米国マサチューセッツ州ボストン地域のさまざまな近隣地域の住宅価格の回帰およびモデリングの問題に対処するように設計されています。このデータセットは、教育および研究の例や実践に一般的に使用されています。"
+          },
+          "link": "<link1>UCIデータセットエントリ</link1>",
+          "details-input": {
+            "title": "入力データ",
+            "california": {
+              "list": {
+                "0": "<strong>Median House Value</strong>: ブロック内の世帯の平均住宅価値（米ドルで測定）[$]。",
+                "1": "<strong>Median Income</strong>: ブロック内の世帯の収入中央値（数万米ドルで測定）[10k$]。",
+                "2": "<strong>Median Age</strong>: ブロック内の住宅の年齢中央値。値が低いほど新しい建物を意味します [年]。",
+                "3": "<strong>Total Rooms</strong>: ブロック内の総部屋数",
+                "4": "<strong>Total Bedrooms</strong>: ブロック内の総寝室数",
+                "5": "<strong>Population</strong>: ブロック内に居住する総人数",
+                "6": "<strong>Households</strong>: ブロック内の世帯総数（世帯単位内に居住する人々のグループ）",
+                "7": "<strong>Latitude</strong>: 住宅が北にある距離の測定値。値が高いほど北を意味します [°]。",
+                "8": "<strong>Longitude</strong>: 住宅が西にある距離の測定値。値が高いほど西を意味します [°]。",
+                "9": "<strong>Distance to coast</strong>: 最も近い海岸線までの距離 [m]",
+                "10": "<strong>Distance to Los Angeles</strong>: ロサンゼルス中心部までの距離 [m]。",
+                "11": "<strong>Distance to San Diego</strong>: サンディエゴ中心部までの距離 [m]",
+                "12": "<strong>Distance to San Jose</strong>: サンホセ中心部までの距離 [m]",
+                "13": "<strong>Distance to San Francisco</strong>: サンフランシスコ中心部までの距離 [m]。",
+                "14": null
+              }
+            },
+            "boston": {
+              "list": {
+                "0": "<strong>CRIM</strong> 市内の一人当たりの犯罪率",
+                "1": "<strong>Zn</strong> 25,000平方フィート以上の区画の住宅地の割合。",
+                "2": "<strong>INDUS</strong> 市内の一人当たりの非小売業の割合",
+                "3": "<strong>CHAS</strong> チャールズ川ダミー変数（トラクトが川と接している場合は1、それ以外の場合は0）",
+                "4": "<strong>NOX</strong> 窒素酸化物濃度（1000万分の1）",
+                "5": "<strong>RM</strong> 住宅あたりの平均部屋数",
+                "6": "<strong>AGE</strong> 1940年より前に建てられた所有者居住ユニットの割合",
+                "7": "<strong>DIS</strong> 5つのボストン雇用センターまでの加重距離",
+                "8": "<strong>RAD</strong> ラジアル高速道路へのアクセス指数",
+                "9": "<strong>TAX</strong> 10,000ドルあたりの固定資産税",
+                "10": "<strong>PRATIO</strong> 市内の一人当たりの生徒と教師の比率",
+                "11": "<strong>B</strong> 1000 (BK - 0.63)^2 (BKは市内の一人当たりの黒人の割合)",
+                "12": "<strong>LSTAT</strong> LSTAT 人口の低所得者層の割合",
+                "13": "<strong>MEDV</strong> 所有者居住住宅の平均価値（1000ドル）"
+              }
+            }
+          },
+          "details-output": {
+            "title": "出力データ",
+            "california": {
+              "list": {
+                "0": "計算された回帰"
+              }
+            },
+            "boston": {
+              "list": {
+                "0": "計算された回帰"
+              }
+            }
+          },
+          "details-references": {
+            "title": "参照元",
+            "california": {
+              "list": {
+                "0": "<link1>Kaggle California Housing Prices Data (5 new features!)</link1>"
+              }
+            },
+            "boston": {
+              "list": {
+                "0": "<link1>UCIデータセットエントリ</link1>",
+                "1": "<link1>ボストン住宅データセットに関する論争</link1>"
+              }
+            }
+          }
+        }
+      },
+      "breast-cancer": {
+        "title": "ウィスコンシン乳がん (診断と予後)",
+        "description": {
+          "text": {
+            "0": "これは、乳がんに関連するウィスコンシン大学病院のデータセットです。このデータセットは、乳がんの良性または悪性の腫瘍を予測および識別するのに役立ちます。",
+            "1": "各レコードは、1984年からDr. Wolbergによって治療された浸潤性乳がんで転移の証拠がないケースのみを追跡したデータです。",
+            "2": "最初の30の特徴量は、乳腺腫瘤の穿刺吸引細胞診（PAAF）のデジタル画像から計算され、細胞核の特徴を記述しています。いくつかの画像は<link1>cs wisc</link1>で見つけることができます。",
+            "3": "ファイル <kbd>wdbc.csv</kbd> は診断データセットに対応し、<kbd>wpbc.csv</kbd> は予後データセットに対応します。"
+          },
+          "link": "<link1>UCIデータセットエントリ</link1>",
+          "details-1-input": {
+            "title": "入力データ",
+            "list": {
+              "0": "<strong>ID番号</strong>",
+              "1": "<strong>結果</strong> (R = 再発性, N = 非再発性)",
+              "2": "<strong>時間</strong> (フィールド 2 = R の場合は再発までの時間、フィールド 2 = N の場合は無病期間)",
+              "3": "4-33 各細胞核について10個の実数値特徴量が計算されます：",
+              "4": "<strong>半径</strong> (中心から周囲までの距離の平均)",
+              "5": "<strong>テクスチャ</strong> (グレースケール値の標準偏差)",
+              "6": "<strong>周囲長</strong>",
+              "7": "<strong>面積</strong>",
+              "8": "<strong>平滑性</strong> (半径の長さの局所的な変動)",
+              "9": "<strong>コンパクトさ</strong> (周囲長^2 / 面積 - 1.0)",
+              "10": "<strong>凹面</strong> (輪郭の凹状部分の重症度)",
+              "11": "<strong>凹点</strong> (輪郭の凹状部分の数)",
+              "12": "<strong>対称性</strong>",
+              "13": "<strong>フラクタル次元</strong> (「海岸線近似」 - 1)"
+            }
+          },
+          "details-2-output": {
+            "title": "出力データ",
+            "list": {
+              "0": "計算された回帰"
+            }
+          },
+          "details-3-references": {
+            "title": "参照元",
+            "list": {
+              "0": "<link1>Breast Cancer Wisconsin</link1>",
+              "1": "<link1>Breast Cancer Wisconsin (Prognostic)</link1>",
+              "2": "<link1>Breast Cancer Wisconsin (Diagnostic)</link1>"
+            }
+          }
+        }
+      },
+      "student-performance": {
+        "title": "学生の成績",
+        "description": {
+          "text": {
+            "0": "このデータセットには、2つのポルトガル学校の生徒の学業成績データが含まれています。データには、生徒の人口統計、社会的な特徴、成績などが含まれています。数学（mat）とポルトガル語（por）の2つの異なる科目に関する成績データセットが含まれています。",
+            "1": "データセットには多変量データ、実数型の属性、649インスタンス、および12個の異なる属性が含まれています。",
+            "2": "重要な注意: ターゲット属性G3は、G2およびG1属性と強い相関があります。これは、G3が最終学年の成績（3学期に発行）であり、G1およびG2が1学期と2学期の成績に対応しているためです。G2とG1なしでG3を予測することはより困難ですが、そのような予測はより有用です。",
+            "3": "ファイル <kbd>student-por.csv</kbd> はポルトガル語の学生成績データセットに対応し、<kbd>student-mat.csv</kbd> は数学の学生成績データセットに対応します。"
+          },
+          "link": "<link1>UCIデータセットエントリ</link1>",
+          "details-1-input": {
+            "title": "入力データ",
+            "list": {
+              "0": "<strong>school</strong> - 生徒の学校（バイナリ: 'GP' - Gabriel Pereira または 'MS' - Mousinho da Silveira）",
+              "1": "<strong>sex</strong> - 生徒の性別（バイナリ: 'F' - 女性 または 'M' - 男性）",
+              "2": "<strong>age</strong> - 生徒の年齢（数値: 15歳から22歳）",
+              "3": "<strong>address</strong>: 生徒の住居の種類（バイナリ: 'U' - 都市 または 'R' - 地方）",
+              "4": "<strong>famsize</strong> - 家族のサイズ（バイナリ: 'LE3' - 3人以下 または 'GT3' - 3人以上）",
+              "5": "<strong>Pstatus</strong> - 両親の同居状況（バイナリ: 'T' - 同居 または 'A' - 別居）",
+              "6": "<strong>Medu</strong> - 母親の学歴（数値: 0 - なし, 1 - 小学校（4年生）, 2 - 5年生から9年生, 3 - 中等教育 または 4 - 高等教育）",
+              "7": "<strong>Fedu</strong> - 父親の学歴（数値: 0 - なし, 1 - 小学校（4年生）, 2 - 5年生から9年生, 3 - 中等教育 または 4 - 高等教育）",
+              "8": "<strong>Mjob</strong> - 母親の職業（名義尺度: 'teacher' (教師), 'health' (医療関連), 'services' (サービス業) (例: 管理職や警察), 'at_home' (主婦) または 'other' (その他)）",
+              "9": "<strong>Fjob</strong> - 父親の職業（名義尺度: 'teacher', 'health', 'services', 'at_home', 'other'）",
+              "10": "<strong>reason</strong>: この学校を選んだ理由（名義尺度: 「home」（家が近い）、「course」（コースの好み）、「reputation」（学校の評判）、「other」（その他）",
+              "11": "<strong>guardian</strong> - 生徒の保護者（名義尺度: 'mother' (母), 'father' (父) または 'other' (その他)）",
+              "12": "<strong>traveltime</strong>: 自宅から学校までの通学時間（数値: 1 - 15分未満, 2 - 15分から30分, 3 - 30分から1時間, または 4 - 1時間以上）",
+              "13": "<strong>studytime</strong>: 週間の学習時間（数値: 1 - 2時間未満, 2 - 2時間から5時間, 3 - 5時間から10時間 または 4 - 10時間以上）",
+              "14": "<strong>failures</strong>: 以前のクラスでの落第回数（数値: nが1 <= n <= 3の場合 n, それ以外の場合は4）",
+              "15": "<strong>schoolsup</strong> - 追加の教育サポート（バイナリ: yes または no）",
+              "16": "<strong>famsup</strong> - 家族の教育サポート（バイナリ: yes または no）",
+              "17": "<strong>paid</strong> - コース科目（数学またはポルトガル語）の有料追加クラス（バイナリ: yes または no）",
+              "18": "<strong>activities</strong> - 課外活動（バイナリ: yes または no）",
+              "19": "<strong>nursery</strong>: 幼稚園に通っていたか（バイナリ: yes または no）",
+              "20": "<strong>higher</strong> - 高等教育を希望するか（バイナリ: yes または no）",
+              "21": "<strong>internet</strong> - 自宅でのインターネットアクセス（バイナリ: yes または no）",
+              "22": "<strong>romantic</strong> - 恋愛関係にあるか（バイナリ: yes または no）",
+              "23": "<strong>famrel</strong> - 家族関係の質（数値: 1 - 非常に悪い から 5 - 非常に良い）",
+              "24": "<strong>freetime</strong>: 放課後の自由時間（数値: 1 - 非常に少ない から 5 - 非常に多い）",
+              "25": "<strong>goout</strong> - 友達と外出（数値: 1 - 非常に少ない から 5 - 非常に多い）",
+              "26": "<strong>Dalc</strong> - 平日のアルコール消費量（数値: 1 - 非常に少ない から 5 - 非常に多い）",
+              "27": "<strong>Walc</strong> - 週末のアルコール消費量（数値: 1 - 非常に少ない から 5 - 非常に多い）",
+              "28": "<strong>health</strong>: 現在の健康状態（数値: 1 - 非常に悪い から 5 - 非常に良い）",
+              "29": "<strong>absences</strong> - 学校の欠席日数（数値: 0から93）"
+            }
+          },
+          "details-2-output": {
+            "title": "出力データ",
+            "list": {
+              "0": "計算された回帰"
+            }
+          },
+          "details-3-references": {
+            "title": "参照元",
+            "list": {
+              "0": "<link1>Student Performance</link1>"
+            }
+          }
+        }
+      },
+      "wine": {
+        "title": "ワインの品質",
+        "description": {
+          "text": {
+            "0": "この2つのデータセットは関連しており、ポルトガルワインの赤ワインと白ワインのバリアントが含まれています。このデータセットには、理化学変数（入力）と感覚変数（出力）のみが含まれており、ブドウの品種、ワインのブランド、または販売価格のデータは含まれていません。",
+            "1": "データセットには、多変量データ、実数型の属性、4898インスタンス、および12個の異なる属性が含まれています。",
+            "2": "このデータセットは、分類タスクまたは回帰タスクに使用できます。クラスは順序付けされていますが、データセットは不均衡です。",
+            "3": "ファイル <kbd>wine-quality-red.csv</kbd> は赤ワインデータセットに対応し、<kbd>wine-quality-white.csv</kbd> は白ワインデータセットに対応します。"
+          },
+          "link": "このデータセットの詳細については、<link1>archive.ics.uci.edu</link1>リポジトリをご覧ください。",
+          "details-1-input": {
+            "title": "入力データ",
+            "list": {
+              "0": "<strong>Fixed Acidity (固定酸度)</strong>: ワイン中の非揮発性酸の濃度、主に酒石酸を指します。ワインの新鮮さと安定性に貢献します。",
+              "1": "<strong>Volatile Acidity (揮発性酸度)</strong>: 酢酸などの揮発性酸の濃度を指し、過剰に存在すると不快な味を与える可能性があります。",
+              "2": "<strong>Citric Acid (クエン酸)</strong>: クエン酸は、ワインに存在する天然の有機酸の1つです。ワインの風味と新鮮さに影響を与える可能性があります。",
+              "3": "<strong>Residual Sugar (残糖)</strong>: 発酵後にワインに残る砂糖の量です。ワインはドライ（残糖が少ない）または甘い（残糖が多い）場合があります。",
+              "4": "<strong>Chlorides (塩化物)</strong>: ワイン中の塩化物濃度は、その風味と香りに影響を与え、高レベルは生産上の問題を示す可能性があります。",
+              "5": "<strong>Free Sulfur Dioxide (遊離二酸化硫黄)</strong>: 二酸化硫黄はワインで一般的な防腐剤であり、酸化や不要な微生物の増殖を防ぐのに役立ちます。",
+              "6": "<strong>Total Sulfur Dioxide (総二酸化硫黄)</strong>: ワイン中の遊離二酸化硫黄と他の分子に結合した二酸化硫黄の合計を表します。ワインの保存にも関連しています。",
+              "7": "<strong>Density (密度)</strong>: 密度は、単位体積あたりのワインの質量を指します。アルコールと砂糖の濃度に関する情報を提供できます。",
+              "8": "<strong>pH</strong>: pHはワインの酸性度またはアルカリ度を測定します。pHが低いほど酸性を示し、pHが高いほどアルカリ性を示します。味の知覚に影響を与える可能性があります。",
+              "9": "<strong>Sulphates (硫酸塩)</strong>: 硫酸塩は、ワインの生産で時々使用される添加剤です。ワインの安定性と香りに影響を与える可能性があります。",
+              "10": "<strong>Alcohol (アルコール)</strong>: ワイン中のアルコール濃度はさまざまであり、風味と口当たりに影響します。",
+              "11": "<strong>Quality (品質)</strong>: これは、テイスターの評価に従って、通常0から10のスケールで、ワインの全体的な品質スコアであり、値が高いほど高品質のワインを示します。"
+            }
+          },
+          "details-2-output": {
+            "title": "出力データ",
+            "list": {
+              "0": "計算された回帰"
+            }
+          }
+        }
+      },
+      "list-datasets": {
+        "salary": "データセット - 給与",
+        "auto-mpg": "データセット - 燃費性能",
+        "housing-prices": "データセット - 住宅価格",
+        "breast-cancer": "データセット - 乳がん",
+        "student-performance": "データセット - 学生成績",
+        "wine": "データセット - ワイン"
+      },
+      "list-models": {
+        "salary": "モデル - 給与",
+        "auto-mpg": "モデル - 燃費性能",
+        "housing-prices": "モデル - 住宅価格",
+        "breast-cancer": "モデル - 乳がん",
+        "student-performance": "モデル - 学生成績",
+        "wine": "モデル - ワイン"
+      },
+      "joyride": {
+        "title": "チュートリアルを開始",
+        "steps": {
+          "manual": {
+            "title": "マニュアル",
+            "content": "情報を探すためにマニュアルを参照できます"
+          },
+          "dataset-info": {
+            "title": "データセット情報",
+            "content": "データセットの情報を参照します"
+          },
+          "dataset": {
+            "title": "データセット",
+            "content": "データセットを表示し、その説明から統計情報を抽出できます"
+          },
+          "pre-process-dataset": {
+            "title": "前処理",
+            "content": "データセットのクリーニングと準備"
+          },
+          "dataset-plot": {
+            "title": "データセットのグラフ",
+            "content": "さまざまなグラフ（棒グラフ、円グラフなど）を使用して、データセットを分析することで非常に重要な情報を抽出できます"
+          },
+          "layer-visualizer": {
+            "title": "ニューラルネットワーク層のビジュアライザー",
+            "content": "コンパクトモードと拡張モードの2つの形式で、レイヤー、活性化関数を表示できます"
+          },
+          "layer-editor": {
+            "title": "レイヤーエディタ",
+            "content": "ニューラルネットワークのレイヤーを編集したり、各レイヤーのニューロン数、活性化関数を変更したり、新しいレイヤーを追加したり削除したりできます。"
+          },
+          "params-editor": {
+            "title": "ハイパーパラメータエディタ",
+            "content": "トレーニングがデータセットに合わせてカスタマイズされるように、ニューラルネットワークのハイパーパラメータを設定できます。"
+          },
+          "list-of-models": {
+            "title": "モデルリスト",
+            "content": "モデルが生成されたら、モデルをロードまたはダウンロードして、各モデルをテストし、予測を実行できます。"
+          },
+          "predict-and-visualizer": {
+            "title": "予測と可視化",
+            "content": "回帰モデルをロードしたら、予測を実行し、結果を可視化できます"
+          }
+        }
+      }
+    },
+    "2-object-detection": {
+      "interface": {
+        "process-webcam": {
+          "title": "リアルタイム認識",
+          "sub-title": "Webカメラ",
+          "button": "Webカメラ"
+        },
+        "process-image": {
+          "title": "画像処理",
+          "sub-title": "画像アップロード"
+        }
+      },
+      "face-detection": {
+        "title": "FaceDetector - 顔の幾何学",
+        "description": {
+          "text-0": "このモデルは、入力画像またはビデオから、目、耳、鼻、口などの顔のさまざまな部分を認識できます。",
+          "details-input": {
+            "title": "入力データ",
+            "list": {
+              "0": "画像またはビデオ。"
+            }
+          },
+          "details-output": {
+            "title": "出力データ",
+            "list": {
+              "0": "顔のさまざまな部分を区切る一連のポイントを持つ元の入力要素。"
+            }
+          },
+          "details-references": {
+            "title": "参照元",
+            "list": {
+              "0": "<link1>tensorflowリポジトリのモデルエントリ</link1>"
+            }
+          }
+        }
+      },
+      "face-mesh": {
+        "title": "FaceMesh - 顔メッシュ",
+        "description": {
+          "text-0": "このモデルは、入力画像またはビデオから、顔のさまざまなポイントを認識し、最終的に顔のメッシュを作成できます。",
+          "details-input": {
+            "title": "入力データ",
+            "list": {
+              "0": "画像またはビデオ。"
+            }
+          }
+        }
+      }
+    }
+  },
+  "footer": {
+    "documentation": "ドキュメント"
+  }
+}

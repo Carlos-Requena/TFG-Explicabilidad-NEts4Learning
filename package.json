@@ -91,7 +91,8 @@
     "tfjs-npy": "^0.0.3",
     "tfjs-npy-node": "^0.4.1",
     "vis-network": "^9.1.6",
-    "web-vitals": "^3.3.2"
+    "web-vitals": "^3.3.2",
+    "webshap": "^0.1.4"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",

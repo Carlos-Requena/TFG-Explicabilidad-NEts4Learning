@@ -1534,7 +1534,8 @@
           "description-input": "Descripción de la entrada de datos",
           "description-features": "Formulario de edición de las características",
           "description-data": "Datos del formulario",
-          "description-vector": "Vector de los datos"
+          "description-vector": "Vector de los datos",
+          "explainability": "Explicabilidad del modelo"
         },
         "0_upload": {
           "upload": "Subir",

@@ -5,6 +5,9 @@ import { Trans, useTranslation } from 'react-i18next'
 import * as tfjs from '@tensorflow/tfjs'
 import * as tfvis from '@tensorflow/tfjs-vis'
 
+// Prueba Mockup
+import ExplanationChart from './ModelExplanationChart'
+
 import alertHelper from '@utils/alertHelper'
 import I_MODEL_TABULAR_CLASSIFICATION from './models/_model'
 import { VERBOSE } from '@/CONSTANTS'
@@ -19,6 +22,11 @@ import { UPLOAD } from '@/DATA_MODEL'
 
 export default function ModelReviewTabularClassification (props) {
   const { dataset } = props
+
+  // Aquí ponemos estados de explicabilidad
+  const [showExplain, setShowExplain] = useState(false)
+  const [explanationData, setExplanationData] = useState(null)
+  const [isCalculo, setIsCalculo] = useState(false)
 
   //const prefix = 'pages.playground.0-tabular-classification'
   const { t } = useTranslation()
@@ -279,6 +287,34 @@ export default function ModelReviewTabularClassification (props) {
 
           <ModelReviewTabularClassificationPredict iModelInstance={iModelInstance_ref.current}
                                                    prediction={prediction} />
+
+          {/* Explicabilidad */}
+          <Card className={'mt-3'}>
+            <Card.Header className={'d-flex align-items-center justify-content-between'}>
+              <h3>
+                <Trans i18nKey={'pages.playground.0-tabular-classification.general.explainability'} />
+              </h3>
+              <div className="d-flex">
+                <Button size={'sm'}
+                        variant={showExplain ? 'outline-secondary' : 'outline-info'}
+                        onClick={() => setShowExplain(prev => !prev)}
+                        //disabled={isCalculo}
+                        >
+                  {showExplain
+                    ? t('pages.playground.0-tabular-classification.general.hide-explain', { defaultValue: 'Hide explanation' })
+                    : t('pages.playground.0-tabular-classification.general.show-explain', { defaultValue: 'Show explanation' })}
+                </Button>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              <Row>
+                <Col>
+                  {showExplain && <ExplanationChart />}
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
+
         </Col>
       </Row>
     </Container>

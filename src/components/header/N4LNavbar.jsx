@@ -4,6 +4,7 @@ import { Container, Nav, Navbar, NavDropdown } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
 import { ReactComponent as IconLangES } from '../../assets/es.svg'
+import { ReactComponent as IconLangJP } from '../../assets/jp.svg'
 import { ReactComponent as IconLangGB } from '../../assets/gb.svg'
 import { ReactComponent as IconThemeLight } from '../../assets/sun.svg'
 import { ReactComponent as IconThemeDark } from '../../assets/moon.svg'
@@ -73,6 +74,15 @@ export default function N4LNavbar () {
                   }}>
                   <IconLangES width={'1rem'} className={'me-2'} style={{ verticalAlign: 'unset' }} />
                   Español
+                </NavDropdown.Item>
+                <NavDropdown.Item 
+                  onClick={() => {
+                    i18n.changeLanguage('jp')
+                    localStorage.setItem('language', 'jp')
+                    window.dispatchEvent( new Event('storage') )
+                  }}>
+                  <IconLangJP width={'1rem'} className={'me-2'} style={{ verticalAlign: 'unset' }} />
+                  Japonés
                 </NavDropdown.Item>
               </NavDropdown>
               {process.env.REACT_APP_SHOW_NEW_FEATURE === 'true' &&
