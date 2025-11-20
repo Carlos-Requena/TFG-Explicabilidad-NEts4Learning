@@ -9,7 +9,7 @@ import * as tfvis from '@tensorflow/tfjs-vis'
 import ExplanationChart from './ModelExplanationChart'
 
 // WebSHAP
-import { KernelSHAP } from 'webshap'
+//import { KernelSHAP } from 'webshap'
 
 import alertHelper from '@utils/alertHelper'
 import I_MODEL_TABULAR_CLASSIFICATION from './models/_model'
@@ -22,7 +22,6 @@ import ModelReviewTabularClassificationPredictForm from '@pages/playground/0_Tab
 import * as DataFrameUtils from '@core/dataframe/DataFrameUtils'
 import { useNavigate } from 'react-router'
 import { UPLOAD } from '@/DATA_MODEL'
-import { BackgroundTokenizer } from '@node_modules/brace'
 
 export default function ModelReviewTabularClassification (props) {
   const { dataset } = props
@@ -100,55 +99,6 @@ export default function ModelReviewTabularClassification (props) {
           setIsLoading(false)
           setIsButtonToPredictDisabled(false)
           await alertHelper.alertSuccess(t('model-loaded-successfully'))
-
-          // Datos para WebSHAP
-          try {
-            // 1) preparar background: array 2D (limita a p.ej. 50 muestras)
-            const dfX = _datasets[0].data_processed.X // es un DataFrame de danfojs
-            const bgArray = (dfX.values || dfX).slice(0, 50) // asegúrate que es [][]
-
-            // 2) crear función de predicción síncrona para KernelSHAP
-            const classesLen = iModelInstance_ref.current?.CLASSES?.length ?? null
-            const predictSync = (batchX) => {
-              if (!model_ref.current) throw new Error('Model not loaded')
-              // batchX: array 2D [N x D]
-              const t = tfjs.tensor2d(batchX, [batchX.length, batchX[0].length])
-              const out = model_ref.current.predict(t) // tensor shape [N, C]
-              const flat = Array.from(out.dataSync()) // plano
-              t.dispose()
-              // reconstruir a array 2D [N x C]
-              if (classesLen) {
-                const res = []
-                for (let i = 0; i < flat.length; i += classesLen) {
-                  res.push(flat.slice(i, i + classesLen))
-                }
-                return res
-              } else {
-                // fallback: inferir C desde flat/ N
-                const guessedC = flat.length / batchX.length
-                const res = []
-                for (let i = 0; i < flat.length; i += guessedC) {
-                  res.push(flat.slice(i, i + guessedC))
-                }
-                return res
-              }
-            }
-
-            // 3) crear el explainer
-            const explainer = new KernelSHAP(predictSync, bgArray, { nsamples: 100 })
-
-            // 4) explicar una instancia (por ejemplo vectorToPredict)
-            // vectorToPredict es 1D (length D), KernelSHAP puede requerir 2D y/o API distinta
-            const instance = [ vectorToPredict ] // [1 x D]
-            // Dependiendo de webshap: puede ser explainer.explain(instance) o explainer.explainSync(...)
-            const explanation = await explainer.explain(instance) // si es async
-            // o: const explanation = explainer.explainSync(instance)
-
-            // 5) guardar resultado en estado para pasar al chart
-            setExplanationData(explanation)
-          } catch (err) {
-            console.error('Error creating SHAP explainer', err)
-          }
         } catch (e) {
           console.error('Error, can\'t load model', { e })
         }
