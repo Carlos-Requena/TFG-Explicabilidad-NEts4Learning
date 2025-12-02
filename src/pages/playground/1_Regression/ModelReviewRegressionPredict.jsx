@@ -27,7 +27,6 @@ export default function ModelReviewRegressionPredict (props) {
     setPrediction 
   } = props
 
-
   const handleSubmit_Predict = (event) => {
     event.preventDefault()
 
@@ -40,6 +39,8 @@ export default function ModelReviewRegressionPredict (props) {
       ...prevState,
       result: result
     }))
+            console.log('Initial prediction state set:', prediction.input_0_raw)
+
   }
 
   if (VERBOSE) console.debug('ModelReviewLinearRegressionPredict')

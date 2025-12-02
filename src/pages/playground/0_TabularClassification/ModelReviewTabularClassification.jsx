@@ -4,9 +4,10 @@ import { Button, Card, Col, Container, Form, ProgressBar, Row } from 'react-boot
 import { Trans, useTranslation } from 'react-i18next'
 import * as tfjs from '@tensorflow/tfjs'
 import * as tfvis from '@tensorflow/tfjs-vis'
+import { myModelWrapper } from '@core/explainability/ModelExplanation'
 
 // Prueba Mockup
-import ExplanationChart from './ModelExplanationChart'
+import ShapExplanationChart from '@core/explainability/ModelExplanationChart'
 
 // WebSHAP
 import { KernelSHAP } from 'webshap'
@@ -22,7 +23,6 @@ import ModelReviewTabularClassificationPredictForm from '@pages/playground/0_Tab
 import * as DataFrameUtils from '@core/dataframe/DataFrameUtils'
 import { useNavigate } from 'react-router'
 import { UPLOAD } from '@/DATA_MODEL'
-import { BackgroundTokenizer } from '@node_modules/brace'
 
 export default function ModelReviewTabularClassification (props) {
   const { dataset } = props
@@ -31,6 +31,8 @@ export default function ModelReviewTabularClassification (props) {
   const [showExplain, setShowExplain] = useState(false)
   const [explanationData, setExplanationData] = useState(null)
   const [isCalculo, setIsCalculo] = useState(false)
+  const backgroundData = useRef([]) // Aquí irían datos de fondo para el KernelSHAP
+  const explainer= useRef(null)
 
   //const prefix = 'pages.playground.0-tabular-classification'
   const { t } = useTranslation()
@@ -54,6 +56,7 @@ export default function ModelReviewTabularClassification (props) {
   const handleChange_onProgress = (fraction) => {
     setProgress(fraction * 100)
   }
+
   useEffect(() => {
     if (VERBOSE) console.debug('useEffect []')
     return () => {
@@ -97,58 +100,26 @@ export default function ModelReviewTabularClassification (props) {
             iModelInstance_ref.current.DATA_DEFAULT_KEYS,
           )
           setVectorToPredict(_applyEncoders)
+
+            // Fill backgroundData.current with representative processed rows (limit to 50)
+            try {
+              const X = _datasets[0].data_processed && _datasets[0].data_processed.X
+              if (X) {
+                const bgRows = DataFrameUtils.DataFrameIterRows(X)
+                const maxRows = Math.min(50, bgRows.length)
+                backgroundData.current = bgRows.slice(0, maxRows)
+                console.log('[Explain] backgroundData initialized with', backgroundData.current.length, 'rows')
+              } else {
+                console.warn('[Explain] dataset has no data_processed.X to build backgroundData')
+              }
+            } catch (e) {
+              console.warn('[Explain] could not initialize backgroundData', e)
+            }
+            
           setIsLoading(false)
           setIsButtonToPredictDisabled(false)
+          setShowExplain(false)
           await alertHelper.alertSuccess(t('model-loaded-successfully'))
-
-          // Datos para WebSHAP
-          try {
-            // 1) preparar background: array 2D (limita a p.ej. 50 muestras)
-            const dfX = _datasets[0].data_processed.X // es un DataFrame de danfojs
-            const bgArray = (dfX.values || dfX).slice(0, 50) // asegúrate que es [][]
-
-            // 2) crear función de predicción síncrona para KernelSHAP
-            const classesLen = iModelInstance_ref.current?.CLASSES?.length ?? null
-            const predictSync = (batchX) => {
-              if (!model_ref.current) throw new Error('Model not loaded')
-              // batchX: array 2D [N x D]
-              const t = tfjs.tensor2d(batchX, [batchX.length, batchX[0].length])
-              const out = model_ref.current.predict(t) // tensor shape [N, C]
-              const flat = Array.from(out.dataSync()) // plano
-              t.dispose()
-              // reconstruir a array 2D [N x C]
-              if (classesLen) {
-                const res = []
-                for (let i = 0; i < flat.length; i += classesLen) {
-                  res.push(flat.slice(i, i + classesLen))
-                }
-                return res
-              } else {
-                // fallback: inferir C desde flat/ N
-                const guessedC = flat.length / batchX.length
-                const res = []
-                for (let i = 0; i < flat.length; i += guessedC) {
-                  res.push(flat.slice(i, i + guessedC))
-                }
-                return res
-              }
-            }
-
-            // 3) crear el explainer
-            const explainer = new KernelSHAP(predictSync, bgArray, { nsamples: 100 })
-
-            // 4) explicar una instancia (por ejemplo vectorToPredict)
-            // vectorToPredict es 1D (length D), KernelSHAP puede requerir 2D y/o API distinta
-            const instance = [ vectorToPredict ] // [1 x D]
-            // Dependiendo de webshap: puede ser explainer.explain(instance) o explainer.explainSync(...)
-            const explanation = await explainer.explain(instance) // si es async
-            // o: const explanation = explainer.explainSync(instance)
-
-            // 5) guardar resultado en estado para pasar al chart
-            setExplanationData(explanation)
-          } catch (err) {
-            console.error('Error creating SHAP explainer', err)
-          }
         } catch (e) {
           console.error('Error, can\'t load model', { e })
         }
@@ -184,13 +155,75 @@ export default function ModelReviewTabularClassification (props) {
         data  : Array.from(model_prediction_data).map((item) => item.toFixed(4)),
       }
       setPrediction(_prediction)
+      // En caso de que la ventana de explicabilidad esté abierta, la cerramos
+      setShowExplain(false)
+      
     } catch (error) {
       console.error(error)
       await alertHelper.alertError('Error, option not valid')
-    }
-
+    }    
     setIsButtonToPredictDisabled(false)
   }
+
+  const handleRequest_ExplainPrediction = async (e) => {
+    e.preventDefault()
+
+    if (showExplain) {
+        setShowExplain(false);
+        return;
+      }
+
+    setIsCalculo(true)
+    if (prediction.labels.length === 0 && backgroundData.current.length === 0) {
+      await alertHelper.alertInfo(t('No prediction has been done'))
+      setIsCalculo(false)
+      return
+    }
+
+    try {
+
+// Bucle para rellenar backgroundData si está vacío
+      const nBackgroundRows = 50
+      const nFeatures = vectorToPredict.length
+      backgroundData.current = Array(nBackgroundRows)
+        .fill(null)
+        .map(() => Array(nFeatures).fill(0));
+
+      // Debug
+      console.log('[Explain] vectorToPredict length:', vectorToPredict?.length)
+      console.log('[Explain] vectorToPredict sample:', vectorToPredict)
+      console.log('[Explain] backgroundData current:', backgroundData.current && backgroundData.current.length)
+      console.log('[Explain] backgroundData first item:', backgroundData.current && backgroundData.current[0])
+
+
+      if (!vectorToPredict || vectorToPredict.length === 0) {
+        await alertHelper.alertInfo(t('info.insert-input'))
+        setIsCalculo(false)
+        return
+      }
+      // Construimos el predictor compatible con WebSHAP
+      const predictor = myModelWrapper(model_ref) 
+
+      // Creamos el explainer usando el predictor y background data
+      explainer.current = new KernelSHAP(
+        predictor,
+        backgroundData.current,
+        0.2022
+      );
+
+      // Explicamos la instancia (pasamos como 2D: [vector])
+      const nSamples = 1000
+      let shapValues = await explainer.current.explainOneInstance(vectorToPredict, nSamples)
+      console.log('[Explain] SHAP values:', shapValues)
+      setIsCalculo(false)
+      setShowExplain(true)
+      setExplanationData(shapValues)
+    } catch (error) {
+      console.error('Error calculating explainability', { error })
+      await alertHelper.alertError(t('Error calculating explainability'))
+      setIsCalculo(false)
+    }
+  } 
 
   const setExample = (example) => {
     setDataToPredict(example)
@@ -350,19 +383,25 @@ export default function ModelReviewTabularClassification (props) {
               <div className="d-flex">
                 <Button size={'sm'}
                         variant={showExplain ? 'outline-secondary' : 'outline-info'}
-                        onClick={() => setShowExplain(prev => !prev)}
-                        //disabled={isCalculo}
-                        >
-                  {showExplain
-                    ? t('pages.playground.0-tabular-classification.general.hide-explain', { defaultValue: 'Hide explanation' })
-                    : t('pages.playground.0-tabular-classification.general.show-explain', { defaultValue: 'Show explanation' })}
+                        onClick={(e) => handleRequest_ExplainPrediction(e)}
+                        disabled={isCalculo}
+                      > 
+                  {isCalculo ? (
+                    <>
+                      {t('pages.playground.0-tabular-classification.general.calculating', { defaultValue: 'Calculating...' })}
+                    </>
+                  ) : showExplain ? (
+                    t('pages.playground.0-tabular-classification.general.hide-explain', { defaultValue: 'Hide explanation' })
+                  ) : (
+                    t('pages.playground.0-tabular-classification.general.show-explain', { defaultValue: 'Show explanation' })
+                  )}
                 </Button>
               </div>
             </Card.Header>
             <Card.Body>
               <Row>
                 <Col>
-                  {showExplain && <ExplanationChart />}
+                  {showExplain && <ShapExplanationChart shapValues={explanationData} predictedClass={2} predictionProbs={prediction} features={iModelInstance_ref.current?.FORM?.map(f => f.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())) || []} />}
                 </Col>
               </Row>
             </Card.Body>

@@ -7,6 +7,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import Webcam from 'react-webcam'
 import * as tfjs from '@tensorflow/tfjs'
+import { KernelSHAP } from 'webshap'
 
 import { VERBOSE } from '@/CONSTANTS'
 import { UPLOAD } from '@/DATA_MODEL'
@@ -16,6 +17,11 @@ import { MAP_OD_CLASSES } from '@pages/playground/2_ObjectDetection/models'
 import alertHelper from '@utils/alertHelper'
 import I_MODEL_OBJECT_DETECTION from './models/_model'
 import { delay } from '@/utils/utils'
+
+import {objectDetectionWrapper} from '@/core/explainability/ObjectDetectionWrapper'
+import ShapHeatmap from '@/core/explainability/ImageHeatMapChart'
+import { computeGridMap } from '@/utils/gridMap'
+
 
 tfjs.setBackend('webgl').then(() => {
   console.debug('setBackend: WebGL')
@@ -30,6 +36,23 @@ export default function ModelReviewObjectDetection({ dataset }) {
 
   const { t } = useTranslation()
   const navigate = useNavigate()
+
+  // Aquí ponemos variables de explicabilidad
+  const [showExplain, setShowExplain] = useState(false)
+  const [explanationData, setExplanationData] = useState(null)
+  const [isCalculo, setIsCalculo] = useState(false)
+  const backgroundData = useRef([]) // Aquí irían datos de fondo para el KernelSHAP
+  const explainer= useRef(null)
+  const imgData = useRef(null)
+  const segmentationMap = useRef(null)
+
+  // Variables Debug
+  const [galleryImages, setGalleryImages] = useState([]) 
+
+  // Variables configurables por el usuario
+  const [gridSide, setGridSide] = useState(6)
+  const [nSamples, setNSamples] = useState(75)
+  const total_features = useRef(gridSide * gridSide)
 
   const [isLoading, setLoading] = useState(true)
   const [isCameraEnable, setCameraEnable] = useState(false)
@@ -335,6 +358,96 @@ export default function ModelReviewObjectDetection({ dataset }) {
     document.body.removeChild(a)
   }
 
+  const handleRequest_ExplainPrediction = async (e) => {
+    e.preventDefault()
+
+    if (showExplain) {
+            setShowExplain(false);
+            return;
+          }
+    
+        const originalImageCanvas = (/** @type {HTMLCanvasElement} */(document.getElementById('0_originalImageCanvas')))
+
+        setIsCalculo(true)
+        if (iModelRef.current.PREDICTION.length === 0 && backgroundData.current.length === 0) {
+          await alertHelper.alertInfo(t('No prediction has been done'))
+          setIsCalculo(false)
+          return
+        }
+    
+        try {
+    
+    // Basado en como funciona webshap KernelSHAP con imagenes y una pagina de SHAP normal miramos por GRIDS
+          const nBackgroundRows = 10
+          const nFeatures = imgData.current.width * imgData.current.height * 3 // Suponiendo imagen RGB   
+    
+          if (!originalImageCanvas || nFeatures === 0) {
+            await alertHelper.alertInfo(t('info.insert-input'))
+            setIsCalculo(false)
+            return
+          }
+            // 1. Predicción normal para extraer clases detectadas
+            const detectionsBase = await iModelRef.current.PREDICTION(imgData.current, { flipHorizontal: !iModelRef.current.mirror })
+            // 2. Extraer clases únicas en orden de aparición
+            const selectedLabels = Array.from(new Set(
+              detectionsBase
+                .filter(det => det && typeof det.class === 'string')
+                .map(det => det.class)
+            ))
+            console.log('selectedLabels extraídos:', selectedLabels)
+
+            // Creamos un mapa de rejilla
+            const { mapArray, numSegments } = computeGridMap(imgData.current.width, imgData.current.height, gridSide);
+            segmentationMap.current = mapArray
+            const segmentationTensor = tfjs.tensor2d(mapArray, [imgData.current.width, imgData.current.height], 'int32');
+            const inputVector = Array(numSegments).fill(1);
+            backgroundData.current = Array(50) // Crea la CAJA EXTERIOR (Las filas)
+              .fill(null)
+              .map(() => 
+                  Array(numSegments).fill(0)     // Crea las CAJAS INTERIORES (Las columnas)
+              );
+            const debugImages = []; 
+
+            // 3. Construimos el predictor compatible con WebSHAP usando esas clases
+            const predictor = objectDetectionWrapper(
+              iModelRef.current,
+              imgData.current,
+              segmentationTensor,
+              debugImages,
+              selectedLabels,
+              {
+                flipHorizontal: !iModelRef.current.mirror,
+              }
+            )
+            
+            console.log('[Explain] Predictor created:', predictor);
+
+          // Creamos el explainer usando el predictor y background data
+          explainer.current = new KernelSHAP(
+            predictor,
+            backgroundData.current,
+            0.2022
+          );
+          
+          console.log('[Explain] Explainer created:', explainer.current);
+          console.log('[Explain] Debug images:', debugImages);
+
+          // Explicamos la instancia (pasamos como 2D: [vector de máscaras])
+          console.log('Contenido inputVector (máscara grid):', inputVector)
+          let shapValues = await explainer.current.explainOneInstance(inputVector, nSamples)
+          console.log('[Explain] SHAP values:', shapValues)
+                    console.log('[Explain] Debug images:', debugImages);
+          setGalleryImages(debugImages)
+          setIsCalculo(false)
+          setShowExplain(true)
+          setExplanationData(shapValues)
+        } catch (error) {
+          console.error('Error calculating explainability', { error })
+          await alertHelper.alertError(t('Error calculating explainability'))
+          setIsCalculo(false)
+        }
+  }
+
   const handleChangeFileUpload = async (_files) => {
     if (VERBOSE) { 
       console.debug('ModelReviewObjectDetection -> handleChangeFileUpload', { _files })
@@ -369,10 +482,10 @@ export default function ModelReviewObjectDetection({ dataset }) {
         resultCanvas.width = this.width
         resultCanvas.height = this.height
         originalImageCanvas_ctx.drawImage(this, 0, 0, width, height)
-        const imgData = originalImageCanvas_ctx.getImageData(0, 0, width, width)
+        imgData.current = originalImageCanvas_ctx.getImageData(0, 0, width, height)
         //await processData(processImageCanvas_ctx, imgData, { flipHorizontal: false })
         resultCanvas_ctx.drawImage(this, 0, 0, width, height)
-        await processData(resultCanvas_ctx, imgData, { flipHorizontal: !iModelRef.current.mirror })
+        await processData(resultCanvas_ctx, imgData.current, { flipHorizontal: !iModelRef.current.mirror })
         await delay(2000)
         
       } catch (error) {
@@ -390,7 +503,7 @@ export default function ModelReviewObjectDetection({ dataset }) {
     }
 
     function failed() {
-      console.error('Error, not created the image')
+      console.error('Error, could not create the image')
     }
 
     const img = new Image()
@@ -700,6 +813,86 @@ export default function ModelReviewObjectDetection({ dataset }) {
                 </Card.Body>
               </Card>
             </Col>
+
+            <Col xs={12}>
+              <Card className={'mt-3'}>
+                <Card.Header className="d-flex justify-content-between align-items-center">
+                  <h3>Explicabilidad (SHAP)</h3>
+                </Card.Header>
+                <Card.Body>
+                  {/* GALERÍA */}
+                  {showExplain && galleryImages.length > 0 && (
+        <div className="mb-4">
+            <h5>Muestras de Perturbación:</h5>
+            {/* CORRECCIÓN CSS: flex-wrap para que no se salga si hay muchas, o mantener scroll */}
+            <div style={{
+                display:'flex', 
+                gap:'10px', 
+                overflowX:'auto', // Esto permite scroll horizontal, está bien
+                padding:'10px', 
+                background:'#f9f9f9', 
+                borderRadius:'8px',
+                minHeight: '100px' // Asegura que se vea el contenedor aunque las imágenes tarden
+            }}>
+                {galleryImages.map((imgSrc, idx) => (
+                    <div key={idx} style={{flex:'0 0 auto', textAlign:'center'}}>
+                        {/* Asegurarse que imgSrc es un string base64 válido */}
+                        <img 
+                            src={imgSrc} 
+                            style={{ height: 80, border: '1px solid #ccc', borderRadius:'4px', objectFit: 'contain' }} 
+                            alt={`sample-${idx}`} 
+                        />
+                        <div style={{fontSize:'10px', color:'#666'}}>#{idx+1}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+      )}
+
+                  {/* HEATMAPS */}
+                  {showExplain && explanationData && (
+                    <Row>
+                       {explanationData.map((shapVals, idx) => (
+                           <Col key={idx} md={6} lg={4} className="mb-3">
+                               <div style={{border:'1px solid #eee', padding:'10px', borderRadius:'8px', textAlign:'center'}}>
+                                   <h6 style={{fontWeight:'bold', marginBottom:'10px'}}>Clase #{idx + 1}</h6>
+                                   <ShapHeatmap 
+                                      imageSrc={canvasImage_ref.current.toDataURL()}
+                                      shapValues={shapVals}
+                                   />
+                               </div>
+                           </Col>
+                       ))}
+                    </Row>
+                  )}
+                  {/* Controles de explicabilidad (grid y samples) y botón debajo */}
+                  <div className="mt-3">
+                    <Form>
+                      <Form.Group className="mb-2" controlId="formGridSideBottom">
+                        <Form.Label>Grid Side (features per side)</Form.Label>
+                        <Form.Control type="number" min={2} max={32} value={gridSide} onChange={e => setGridSide(Number(e.target.value))} />
+                      </Form.Group>
+                      <Form.Group className="mb-2" controlId="formNSamplesBottom">
+                        <Form.Label>nSamples (SHAP)</Form.Label>
+                        <Form.Control type="number" min={1} max={500} value={nSamples} onChange={e => setNSamples(Number(e.target.value))} />
+                      </Form.Group>
+                      <Button 
+                        type="button"
+                        variant={'outline-info'}
+                        onClick={handleRequest_ExplainPrediction}
+                        disabled={isCalculo || !processImage.isProcessed}
+                      >
+                        {isCalculo ? 'Calculando...' : 'Explicar Predicción'}
+                      </Button>
+                    </Form>
+                  </div>
+                  {showExplain && (!explanationData || explanationData.length === 0) && !isCalculo && (
+                      <p className="text-center text-muted">No hay datos de explicación disponibles.</p>
+                  )}
+                </Card.Body>
+              </Card>
+            </Col>
+
           </Col>
         </Row>
       </Container>

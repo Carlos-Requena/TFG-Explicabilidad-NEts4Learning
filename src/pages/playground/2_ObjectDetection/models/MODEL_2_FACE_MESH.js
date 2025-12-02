@@ -81,6 +81,11 @@ export class MODEL_2_FACE_MESH extends I_MODEL_OBJECT_DETECTION {
       maxFaces       : 4,
     }
     this._modelDetector = await faceLandmarksDetection.createDetector(model, mediaPipeFaceMeshMediaPipeModelConfig)
+    try {
+      this.predictor = this.getWrappedPredictor()
+    } catch (e) {
+      console.warn('Could not create wrapped predictor for FACE-MESH', e)
+    }
   }
 
   async PREDICTION (input_image_or_video, config = { flipHorizontal: false }) {

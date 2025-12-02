@@ -17,6 +17,21 @@ export default class MODEL_2_AUTO_MPG extends I_MODEL_REGRESSION {
   i18n_TITLE = 'datasets-models.1-regression.auto-mpg.title'
   _KEY = 'AUTO_MPG'
 
+  FEATURE_NAMES () {
+    const dataset = [
+      { column_name: 'cylinders', column_role: 'Feature' },
+      { column_name: 'displacement', column_role: 'Feature' },
+      { column_name: 'horsepower', column_role: 'Feature' },
+      { column_name: 'weight', column_role: 'Feature' },
+      { column_name: 'acceleration', column_role: 'Feature' },
+      { column_name: 'model-year', column_role: 'Feature' },
+      { column_name: 'mpg', column_role: 'Target' },
+    ]
+    return dataset
+      .filter(col => col.column_role === 'Feature')
+      .map(col => col.column_name)
+  }
+
   DESCRIPTION () {
     const prefix = 'datasets-models.1-regression.auto-mpg.description.'
     return <>

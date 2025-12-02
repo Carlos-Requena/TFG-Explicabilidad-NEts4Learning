@@ -12,16 +12,6 @@ import {
   Legend
 } from 'recharts';
 
-const featureNames = [
-  "Sepal Length (cm)",
-  "Sepal Width (cm)",
-  "Petal Length (cm)",
-  "Petal Width (cm)"
-];
-
-const classNames = ["Setosa", "Versicolor", "Virginica"];
-const classColors = ["#66BB6A", "#FFA726", "#EF5350"];
-
 export default function ShapExplanationChart({ shapValues, predictedClass, predictionProbs, features }) {
 // #region Sample data
 
@@ -31,7 +21,7 @@ export default function ShapExplanationChart({ shapValues, predictedClass, predi
   for (let i = 0; i < features.length; i++) {
     data.push({
       name: features[i],
-      uv: shapValues[predictedClass][i]
+      pv: shapValues[predictedClass][i]
     })
   }
 
@@ -53,7 +43,6 @@ export default function ShapExplanationChart({ shapValues, predictedClass, predi
       <Tooltip />
       <Legend />
       <Bar dataKey="pv" fill="#8884d8" background={{ fill: '#eee' }} />
-      <Bar dataKey="uv" fill="#82ca9d" />
     </BarChart>
   );
   

@@ -2,10 +2,13 @@ import React, { useEffect, useRef, useState, useId } from 'react'
 import { useParams } from 'react-router'
 import { useNavigate } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
-import { Card, Col, Container, Form, Row } from 'react-bootstrap'
+import { Button, Card, Col, Container, Form, Row } from 'react-bootstrap'
 import ReactGA from 'react-ga4'
 import * as dfd from 'danfojs'
 import * as tfjs from '@tensorflow/tfjs'
+import { myModelWrapper } from '@core/explainability/ModelExplanation' 
+import ShapExplanationChart from '@core/explainability/ModelExplanationChart'
+import { KernelSHAP } from 'webshap'
 
 import * as _Types from '@/core/types'
 import { VERBOSE, DEFAULT_SELECTOR_DATASET, DEFAULT_SELECTOR_MODEL, DEFAULT_SELECTOR_INSTANCE } from '@/CONSTANTS'
@@ -20,7 +23,6 @@ import { TRANSFORM_DATASET_PROCESSED_TO_STATE_PREDICTION } from './utils'
 import alertHelper from '@/utils/alertHelper'
 
 
-
 export default function ModelReviewRegression ({ dataset }) {
   /**
    * @type {ReturnType<typeof useParams<{id: string}>>}
@@ -28,14 +30,23 @@ export default function ModelReviewRegression ({ dataset }) {
   const { id } = useParams()
   const navigate = useNavigate()
 
+   // Aquí ponemos estados de explicabilidad
+  const [showExplain, setShowExplain] = useState(false)
+  const [explanationData, setExplanationData] = useState(null)
+  const [isCalculo, setIsCalculo] = useState(false)
+  const backgroundData = useRef([]) // Aquí irían datos de fondo para el KernelSHAP
+  const explainer= useRef(null)
+
+
   const prefix = 'pages.playground.1-regression.'
   const { t } = useTranslation()
   const dataframe_processed_dataset_plotID = useId()
   const dataframe_processed_describe_plotID = useId()
   const iModelInstance_ref = useRef(new I_MODEL_REGRESSION(t, () => {}))
+  const prediction_ref = useRef(null)
+  const indiceModelo = useRef(null)
 
   const [dataframe_X, setDataFrame_X] = useState(new dfd.DataFrame())
-
   /**
    * @type {ReturnType<typeof useState<_Types.StateListDatasetProcessed_t>>}
    */
@@ -105,7 +116,15 @@ export default function ModelReviewRegression ({ dataset }) {
     const init = async () => {
       await tfjs.ready()
       if (listDatasets.index !== DEFAULT_SELECTOR_DATASET && listDatasets.data.length > 0 && iModelInstance_ref.current) {
-        const _models = (await iModelInstance_ref.current.MODELS(listDatasets.data[listDatasets.index].csv))
+        // const _models = (await iModelInstance_ref.current.MODELS(listDatasets.data[listDatasets.index].csv))
+        const csv = listDatasets.data[listDatasets.index].csv
+      
+        // Esto hecho por CHATGPT xd, no sabia sacarlo yo
+      // ANTES: devolvía promesas
+      // const _models = await iModelInstance_ref.current.MODELS(csv)
+      // AHORA: resolvemos las promesas
+      const modelPromises = await iModelInstance_ref.current.MODELS(csv)
+      const _models = await Promise.all(modelPromises)  // ← AQUÍ ESTÁ LA CLAVE
         setListCustomModels({
           data : _models,
           index: 0
@@ -196,6 +215,80 @@ export default function ModelReviewRegression ({ dataset }) {
       index: newInstanceIndex
     }))
   }
+
+  const handleRequest_ExplainPrediction = async (e) => {
+      e.preventDefault()
+  
+      if (showExplain) {
+          setShowExplain(false);
+          return;
+        }
+  
+      setIsCalculo(true)
+      if (prediction.input_0_raw.length === 0 && backgroundData.current.length === 0) {
+        await alertHelper.alertInfo(t('No prediction has been done'))
+        setIsCalculo(false)
+        return
+      }
+  
+console.log('ATTRIBUTE_INFORMATION:', listCustomModels.data[listCustomModels.index].model.FEATURE_NAMES?.map)
+console.log('Tipo:', typeof iModelInstance_ref.current.ATTRIBUTE_INFORMATION.name)
+console.log('Es array?', Array.isArray(iModelInstance_ref.current.ATTRIBUTE_INFORMATION.name))
+
+      try {
+  
+  // Bucle para rellenar backgroundData si está vacío
+        const nBackgroundRows = 50
+        //const nFeatures = prediction.input_0_raw.length
+        const nFeatures = listCustomModels.data[listCustomModels.index].model.inputs[0].shape[1]
+        console.log('[Explain] nFeatures:', nFeatures)
+        backgroundData.current = Array(nBackgroundRows)
+          .fill(null)
+          .map(() => Array(nFeatures).fill(0));
+  
+        // Debug
+        console.log('[Explain] vectorToPredict length:', prediction.input_0_raw?.length)
+        console.log('[Explain] vectorToPredict sample:', prediction.input_0_raw)
+        console.log('[Explain] backgroundData current:', backgroundData.current && backgroundData.current.length)
+        console.log('[Explain] backgroundData first item:', backgroundData.current && backgroundData.current[0])
+  
+        if (!prediction.input_0_raw || prediction.input_0_raw.length === 0) {
+          await alertHelper.alertInfo(t('info.insert-input'))
+          setIsCalculo(false)
+          return
+        }
+        // Construimos el predictor compatible con WebSHAP
+        const model = listCustomModels.data[listCustomModels.index].model
+
+        if (!model) {
+          await alertHelper.alertError(t('Model is not available for explainability'))
+          setIsCalculo(false)
+          return
+        }
+
+        const predictor = myModelWrapper(model) 
+        console.log('[Explain] Predictor constructed for WebSHAP' + model)
+  
+        // Creamos el explainer usando el predictor y los datos de fondo
+        explainer.current = new KernelSHAP(
+          predictor,
+          backgroundData.current,
+          0.2022
+        );
+  
+        // Explicamos la instancia (pasamos como 2D: [vector])
+        const nSamples = 1000
+        let shapValues = await explainer.current.explainOneInstance(prediction.input_3_dataframe_scaling.values[0], nSamples)
+        console.log('[Explain] SHAP values:', shapValues)
+        setIsCalculo(false)
+        setShowExplain(true)
+        setExplanationData(shapValues)
+      } catch (error) {
+        console.error('Error calculating explainability', { error })
+        await alertHelper.alertError(t('Error calculating explainability'))
+        setIsCalculo(false)
+      }
+    }
 
   if (VERBOSE) console.debug('render ModelReviewRegression')
   return (
@@ -305,6 +398,39 @@ export default function ModelReviewRegression ({ dataset }) {
 
                 </Card.Body>
               </Card>
+
+              <Card className={'mt-3'}>
+            <Card.Header className={'d-flex align-items-center justify-content-between'}>
+              <h3>
+                <Trans i18nKey={'pages.playground.0-tabular-classification.general.explainability'} />
+              </h3>
+              <div className="d-flex">
+                <Button size={'sm'}
+                        variant={showExplain ? 'outline-secondary' : 'outline-info'}
+                        onClick={(e) => handleRequest_ExplainPrediction(e)}
+                        disabled={isCalculo}
+                      > 
+                  {isCalculo ? (
+                    <>
+                      {t('pages.playground.0-tabular-classification.general.calculating', { defaultValue: 'Calculating...' })}
+                    </>
+                  ) : showExplain ? (
+                    t('pages.playground.0-tabular-classification.general.hide-explain', { defaultValue: 'Hide explanation' })
+                  ) : (
+                    t('pages.playground.0-tabular-classification.general.show-explain', { defaultValue: 'Show explanation' })
+                  )}
+                </Button>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              <Row>
+                <Col>
+                  {showExplain && <ShapExplanationChart shapValues={explanationData} predictedClass={0} predictionProbs={prediction.result} features={listDatasets.data[listDatasets.index].dataframe_processed.columns}/>}
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>    
+                        
             </Col>
           </Row>
         }

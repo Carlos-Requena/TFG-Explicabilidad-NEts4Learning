@@ -96,6 +96,11 @@ export class MODEL_3_MOVE_NET_POSE_NET extends I_MODEL_OBJECT_DETECTION {
       enableSmoothing: true
     }
     this._modelDetector = await poseDetection.createDetector(model, modelConfig__MoveNet)
+    try {
+      this.predictor = this.getWrappedPredictor()
+    } catch (e) {
+      console.warn('Could not create wrapped predictor for MOVE-NET--POSE-NET', e)
+    }
   }
 
   async PREDICTION (input_image_or_video, config = { flipHorizontal: false }) {

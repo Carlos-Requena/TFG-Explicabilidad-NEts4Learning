@@ -102,6 +102,7 @@ export class MODEL_6_HAND_SIGN extends I_MODEL_OBJECT_DETECTION {
       maxHands    : 4
     }
     this._modelDetector = await handPoseDetection.createDetector(model, modelConfig)
+    // expose a wrapped predictor function that returns adapted predictions
   }
 
   /**

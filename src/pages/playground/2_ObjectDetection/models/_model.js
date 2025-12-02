@@ -25,6 +25,28 @@ export default class I_MODEL_OBJECT_DETECTION {
 
   }
 
+  /**
+   * Return a bound predictor function suitable to pass to wrappers.
+   * By default it just binds the instance `PREDICTION` method.
+   * Models may override to provide a custom function.
+   */
+  getPredictor() {
+    return this.PREDICTION.bind(this)
+  }
+
+  /**
+   * Return a wrapped predictor using the core objectDetectionWrapper.
+   * Accepts the same options as `objectDetectionWrapper` (methodName, adapter, allowNonTensor).
+   * If a model-level custom predictor is needed, models can override this method.
+   */
+  getWrappedPredictor(options = {}) {
+    // Lazy import to avoid cycles at module load time
+    // Use the project alias so bundler resolves correctly
+    // eslint-disable-next-line global-require
+    const { default: objectDetectionWrapper } = require('@/core/explainability/ObjectDetectionWrapper')
+    return objectDetectionWrapper(this.getPredictor(), options)
+  }
+
   _drawRect(ctx, x, y, w, h) {
     ctx.lineWidth = 3
     ctx.strokeStyle = 'rgba(0,255,21,0.84)'

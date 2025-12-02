@@ -1534,7 +1534,8 @@
           "description-input": "Data entry description",
           "description-features": "Features edit form",
           "description-data": "Form data",
-          "description-vector": "Data vector"
+          "description-vector": "Data vector",
+          "explainability": "Model explainability"
         },
         "0_upload": {
           "upload": "Upload",

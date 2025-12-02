@@ -130,6 +130,11 @@ export class MODEL_5_FACE_API extends I_MODEL_OBJECT_DETECTION {
       disgusted: this.t('face-api.disgusted'),
       surprised: this.t('face-api.surprised'),
     }
+    try {
+      this.predictor = this.getWrappedPredictor()
+    } catch (e) {
+      console.warn('Could not create wrapped predictor for FACE-API', e)
+    }
   }
 
   async PREDICTION (input_image_or_video, _config = { }) {

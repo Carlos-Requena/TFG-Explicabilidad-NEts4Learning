@@ -104,7 +104,7 @@ export class MODEL_4_COCO_SSD extends I_MODEL_OBJECT_DETECTION {
   RENDER(ctx, predictions) {
     let scoreParsed = 0
     const font = '16px Barlow-SemiBold, Barlow-Regular, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto'
-
+    
     predictions.forEach(({ score, class: _class, bbox }) => {
       scoreParsed = Math.round(parseFloat(score.toFixed(2)) * 100)
       this._drawRect(ctx, bbox[0], bbox[1], bbox[2], bbox[3])

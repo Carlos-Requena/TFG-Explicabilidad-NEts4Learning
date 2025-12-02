@@ -113,4 +113,64 @@ export class MODEL_1_FACE_DETECTOR extends I_MODEL_OBJECT_DETECTION {
     }
   }
 
+  /**
+   * Return a predictor function that normalizes the face-detection output
+   * to an array of objects: { class, score, bbox }
+   * This makes the model compatible with the shared `objectDetectionWrapper`.
+   */
+  getPredictor() {
+    const boundPrediction = this.PREDICTION.bind(this)
+    return async (input_image_or_video, config = { flipHorizontal: false }) => {
+      const faces = await boundPrediction(input_image_or_video, config)
+      if (!Array.isArray(faces)) return []
+
+      const detections = faces.map(f => {
+        // Score extraction: try common fields
+        let score = 1.0
+        if (typeof f.score === 'number') score = f.score
+        else if (typeof f.probability === 'number') score = f.probability
+        else if (Array.isArray(f.scores) && f.scores.length) score = f.scores[0]
+        else if (Array.isArray(f.probability) && f.probability.length) score = f.probability[0]
+
+        // bbox extraction: normalize to [x, y, width, height]
+        let bbox = [0, 0, 0, 0]
+        try {
+          if (f.box && typeof f.box === 'object') {
+            const b = f.box
+            if ('xMin' in b && 'yMin' in b && 'xMax' in b && 'yMax' in b) {
+              bbox = [b.xMin, b.yMin, b.xMax - b.xMin, b.yMax - b.yMin]
+            } else if ('x' in b && 'y' in b && 'width' in b && 'height' in b) {
+              bbox = [b.x, b.y, b.width, b.height]
+            } else if (Array.isArray(b.topLeft) && Array.isArray(b.bottomRight)) {
+              const [x1, y1] = b.topLeft
+              const [x2, y2] = b.bottomRight
+              bbox = [x1, y1, x2 - x1, y2 - y1]
+            }
+          } else if (f.boundingBox) {
+            const bb = f.boundingBox
+            if (bb.topLeft && bb.bottomRight) {
+              const [x1, y1] = bb.topLeft
+              const [x2, y2] = bb.bottomRight
+              bbox = [x1, y1, x2 - x1, y2 - y1]
+            } else if ('left' in bb && 'top' in bb && 'width' in bb && 'height' in bb) {
+              bbox = [bb.left, bb.top, bb.width, bb.height]
+            }
+          } else if (f.topLeft && f.bottomRight) {
+            const [x1, y1] = f.topLeft
+            const [x2, y2] = f.bottomRight
+            bbox = [x1, y1, x2 - x1, y2 - y1]
+          }
+        } catch (e) {
+          // Keep default bbox if parsing fails
+          // eslint-disable-next-line no-console
+          console.warn('Failed to parse bbox from face detection result', e)
+        }
+
+        return { class: 'face', score, bbox, raw: f }
+      })
+
+      return detections
+    }
+  }
+
 }

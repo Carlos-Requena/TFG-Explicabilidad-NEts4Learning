@@ -6,7 +6,7 @@ i18n
   .use(Backend)
   .use(initReactI18next)
   .init({
-    preload    : ['en'],
+    preload    : ['en','jp'],
     load       : 'languageOnly',
     fallbackLng: ['en', 'es'],
     debug      : process.env.REACT_APP_ENVIRONMENT === 'development',
