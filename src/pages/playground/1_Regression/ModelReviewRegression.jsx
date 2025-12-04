@@ -36,15 +36,14 @@ export default function ModelReviewRegression ({ dataset }) {
   const [isCalculo, setIsCalculo] = useState(false)
   const backgroundData = useRef([]) // Aquí irían datos de fondo para el KernelSHAP
   const explainer= useRef(null)
-
+  const [nSamplesExplain, setNSamplesExplain] = useState(1000)
 
   const prefix = 'pages.playground.1-regression.'
   const { t } = useTranslation()
   const dataframe_processed_dataset_plotID = useId()
   const dataframe_processed_describe_plotID = useId()
   const iModelInstance_ref = useRef(new I_MODEL_REGRESSION(t, () => {}))
-  const prediction_ref = useRef(null)
-  const indiceModelo = useRef(null)
+
 
   const [dataframe_X, setDataFrame_X] = useState(new dfd.DataFrame())
   /**
@@ -77,6 +76,9 @@ export default function ModelReviewRegression ({ dataset }) {
     result                     : [],    
   })
 
+  useEffect(() => {
+    setShowExplain(false)
+  }, [prediction])
 
   useEffect(() => {
     ReactGA.send({ hitType: 'pageview', page: `/ModelReviewRegression/${dataset}`, title: dataset, })
@@ -230,16 +232,10 @@ export default function ModelReviewRegression ({ dataset }) {
         setIsCalculo(false)
         return
       }
-  
-console.log('ATTRIBUTE_INFORMATION:', listCustomModels.data[listCustomModels.index].model.FEATURE_NAMES?.map)
-console.log('Tipo:', typeof iModelInstance_ref.current.ATTRIBUTE_INFORMATION.name)
-console.log('Es array?', Array.isArray(iModelInstance_ref.current.ATTRIBUTE_INFORMATION.name))
 
       try {
   
-  // Bucle para rellenar backgroundData si está vacío
         const nBackgroundRows = 50
-        //const nFeatures = prediction.input_0_raw.length
         const nFeatures = listCustomModels.data[listCustomModels.index].model.inputs[0].shape[1]
         console.log('[Explain] nFeatures:', nFeatures)
         backgroundData.current = Array(nBackgroundRows)
@@ -277,8 +273,7 @@ console.log('Es array?', Array.isArray(iModelInstance_ref.current.ATTRIBUTE_INFO
         );
   
         // Explicamos la instancia (pasamos como 2D: [vector])
-        const nSamples = 1000
-        let shapValues = await explainer.current.explainOneInstance(prediction.input_3_dataframe_scaling.values[0], nSamples)
+        let shapValues = await explainer.current.explainOneInstance(prediction.input_3_dataframe_scaling.values[0], nSamplesExplain)
         console.log('[Explain] SHAP values:', shapValues)
         setIsCalculo(false)
         setShowExplain(true)
@@ -404,32 +399,36 @@ console.log('Es array?', Array.isArray(iModelInstance_ref.current.ATTRIBUTE_INFO
               <h3>
                 <Trans i18nKey={'pages.playground.0-tabular-classification.general.explainability'} />
               </h3>
-              <div className="d-flex">
-                <Button size={'sm'}
-                        variant={showExplain ? 'outline-secondary' : 'outline-info'}
-                        onClick={(e) => handleRequest_ExplainPrediction(e)}
-                        disabled={isCalculo}
-                      > 
-                  {isCalculo ? (
-                    <>
-                      {t('pages.playground.0-tabular-classification.general.calculating', { defaultValue: 'Calculating...' })}
-                    </>
-                  ) : showExplain ? (
-                    t('pages.playground.0-tabular-classification.general.hide-explain', { defaultValue: 'Hide explanation' })
-                  ) : (
-                    t('pages.playground.0-tabular-classification.general.show-explain', { defaultValue: 'Show explanation' })
-                  )}
-                </Button>
-              </div>
             </Card.Header>
             <Card.Body>
+              <Row className={'mb-2'}>
+                <Col md={6} className="mb-2">
+                  <Form.Group controlId="inputNSamplesReg">
+                    <Form.Label>
+                      <Trans i18nKey={'pages.playground.1-regression.n-samples'} defaults={'Number of samples'} />
+                    </Form.Label>
+                    <Form.Control type="number" size={'sm'} value={nSamplesExplain} min={1} step={1} onChange={(e) => setNSamplesExplain(e.target.value)} />
+                    <Form.Text className="text-muted">
+                      <Trans i18nKey={'pages.playground.1-regression.n-samples-help'} defaults={'Samples used by KernelSHAP'} />
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
+                <Col md={6} className="mb-2">
+                  <div className="d-grid gap-2">
+                    <Button size={'lg'} variant={showExplain ? 'outline-secondary' : 'primary'} onClick={(e) => handleRequest_ExplainPrediction(e)} disabled={isCalculo || (prediction.input_0_raw?.length === 0)}>
+                      {isCalculo ? t('pages.playground.0-tabular-classification.general.calculating', { defaultValue: 'Calculating...' }) : (showExplain ? t('pages.playground.0-tabular-classification.general.hide-explain', { defaultValue: 'Hide explanation' }) : t('pages.playground.0-tabular-classification.general.show-explain', { defaultValue: 'Show explanation' }))}
+                    </Button>
+                  </div>
+                </Col>
+              </Row>
+
               <Row>
                 <Col>
-                  {showExplain && <ShapExplanationChart shapValues={explanationData} predictedClass={0} predictionProbs={prediction.result} features={listDatasets.data[listDatasets.index].dataframe_processed.columns}/>}
+                  {showExplain && <ShapExplanationChart shapValues={explanationData} predictedClass={0} predictionProbs={prediction.result} features={listDatasets.data[listDatasets.index]?.dataframe_processed?.columns || []} />}
                 </Col>
               </Row>
             </Card.Body>
-          </Card>    
+          </Card>
                         
             </Col>
           </Row>

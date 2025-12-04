@@ -33,6 +33,8 @@ export default function ModelReviewTabularClassification (props) {
   const [isCalculo, setIsCalculo] = useState(false)
   const backgroundData = useRef([]) // Aquí irían datos de fondo para el KernelSHAP
   const explainer= useRef(null)
+  const [selectedClassIndex, setSelectedClassIndex] = useState(0)
+  const [nSamplesExplain, setNSamplesExplain] = useState(1000)
 
   //const prefix = 'pages.playground.0-tabular-classification'
   const { t } = useTranslation()
@@ -52,6 +54,10 @@ export default function ModelReviewTabularClassification (props) {
   const [vectorToPredict, setVectorToPredict] = useState([])
 
   const [prediction, setPrediction] = useState({ labels: [], data: [] })
+
+  useEffect(() => {
+    setShowExplain(false)
+  }, [prediction])
 
   const handleChange_onProgress = (fraction) => {
     setProgress(fraction * 100)
@@ -212,7 +218,7 @@ export default function ModelReviewTabularClassification (props) {
       );
 
       // Explicamos la instancia (pasamos como 2D: [vector])
-      const nSamples = 1000
+      const nSamples = Number(nSamplesExplain) || 1000
       let shapValues = await explainer.current.explainOneInstance(vectorToPredict, nSamples)
       console.log('[Explain] SHAP values:', shapValues)
       setIsCalculo(false)
@@ -380,28 +386,47 @@ export default function ModelReviewTabularClassification (props) {
               <h3>
                 <Trans i18nKey={'pages.playground.0-tabular-classification.general.explainability'} />
               </h3>
-              <div className="d-flex">
-                <Button size={'sm'}
-                        variant={showExplain ? 'outline-secondary' : 'outline-info'}
-                        onClick={(e) => handleRequest_ExplainPrediction(e)}
-                        disabled={isCalculo}
-                      > 
-                  {isCalculo ? (
-                    <>
-                      {t('pages.playground.0-tabular-classification.general.calculating', { defaultValue: 'Calculating...' })}
-                    </>
-                  ) : showExplain ? (
-                    t('pages.playground.0-tabular-classification.general.hide-explain', { defaultValue: 'Hide explanation' })
-                  ) : (
-                    t('pages.playground.0-tabular-classification.general.show-explain', { defaultValue: 'Show explanation' })
-                  )}
-                </Button>
-              </div>
             </Card.Header>
             <Card.Body>
+              <Row className={'mb-2'}>
+                <Col md={6} className="mb-2">
+                  <Form.Group controlId="selectPredictedClass">
+                    <Form.Label>
+                      <Trans i18nKey={'pages.playground.0-tabular-classification.general.select-class'} defaults={'Select class'} />
+                    </Form.Label>
+                    <Form.Select size={'sm'} value={selectedClassIndex} onChange={(e) => setSelectedClassIndex(Number(e.target.value))}>
+                      {(iModelInstance_ref.current?.CLASSES || []).map((c, idx) => (
+                        <option key={`class_${idx}`} value={idx}>{c}</option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6} className="mb-2">
+                  <Form.Group controlId="inputNSamples">
+                    <Form.Label>
+                      <Trans i18nKey={'pages.playground.0-tabular-classification.general.n-samples'} defaults={'Number of samples'} />
+                    </Form.Label>
+                    <Form.Control type="number" size={'sm'} value={nSamplesExplain} min={1} step={1} onChange={(e) => setNSamplesExplain(e.target.value)} />
+                    <Form.Text className="text-muted">
+                      <Trans i18nKey={'pages.playground.0-tabular-classification.general.n-samples-help'} defaults={'Samples used by KernelSHAP'} />
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row className={'mb-3'}>
+                <Col>
+                  <div className="d-grid gap-2">
+                    <Button size={'lg'} variant={showExplain ? 'outline-secondary' : 'primary'} onClick={(e) => handleRequest_ExplainPrediction(e)} disabled={isCalculo || (prediction?.labels?.length === 0)}>
+                      {isCalculo ? t('pages.playground.0-tabular-classification.general.calculating', { defaultValue: 'Calculating...' }) : (showExplain ? t('pages.playground.0-tabular-classification.general.hide-explain', { defaultValue: 'Hide explanation' }) : t('pages.playground.0-tabular-classification.general.show-explain', { defaultValue: 'Show explanation' }))}
+                    </Button>
+                  </div>
+                </Col>
+              </Row>
+
               <Row>
                 <Col>
-                  {showExplain && <ShapExplanationChart shapValues={explanationData} predictedClass={2} predictionProbs={prediction} features={iModelInstance_ref.current?.FORM?.map(f => f.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())) || []} />}
+                  {showExplain && <ShapExplanationChart shapValues={explanationData} predictedClass={selectedClassIndex} predictionProbs={prediction} features={iModelInstance_ref.current?.FORM?.map(f => f.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())) || []} />}
                 </Col>
               </Row>
             </Card.Body>

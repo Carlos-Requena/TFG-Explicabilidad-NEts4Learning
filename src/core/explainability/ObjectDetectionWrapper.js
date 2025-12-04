@@ -1,9 +1,6 @@
 import * as tf from '@tensorflow/tfjs'
 /*
 export const objectDetectionWrapper = (modelRef, imagenOriginal, gridSize, labels, options = {}) => {
-
-  // Convierte lista de detecciones del modelo a vector de scores
-  // alineado con la lista de etiquetas proporcionada en options.labels.
   const detectionsToVector = (detections, labels) => {
     if (!Array.isArray(labels) || labels.length === 0) return []
 
@@ -72,9 +69,7 @@ export const objectDetectionWrapper = (modelRef, imagenOriginal, gridSize, label
   }
 }*/
 
-import { delay } from '@/utils/utils'
-
-export const objectDetectionWrapper = (modelRef, imagenOriginal, segmentationTensor, debugImages, labels, options = {}) => {
+export const objectDetectionWrapper = (modelRef, imagenOriginal, segmentationTensor, debugImages, usesTensorForPrediction, labels, options = {}) => {
     const detectionsToVector = (detections, labels) => {
         if (!Array.isArray(labels) || labels.length === 0) return [];
         const scores = new Array(labels.length).fill(0);
@@ -93,7 +88,7 @@ export const objectDetectionWrapper = (modelRef, imagenOriginal, segmentationTen
     return async (x) => {
         if (!x || x.length === 0) return [];
 
-        // Convertir imagen original a tensor una sola vez
+        // imgoriginal ---> tensor
         const imgToTensor = tf.tidy(() => {
             return tf.browser
                 .fromPixels(imagenOriginal)
@@ -102,13 +97,18 @@ export const objectDetectionWrapper = (modelRef, imagenOriginal, segmentationTen
         });
 
         const batchVectors = [];
-        let tensorForDebug = null;
-
 
         try {
+            let reusableCanvasForPrediction = null
+            if (!usesTensorForPrediction) {
+              reusableCanvasForPrediction = document.createElement('canvas')
+              reusableCanvasForPrediction.width = imagenOriginal.width
+              reusableCanvasForPrediction.height = imagenOriginal.height
+            }
+
             for (let i = 0; i < x.length; i++) {
-              console.log(`[Wrapper] Processing instance ${i + 1} of ${x.length}`);
-                const rawVector = x[i];
+              console.log(`[Wrapper] Processing instance ${i + 1} of ${x.length}`)
+                const rawVector = x[i]
                 const inputTensor = tf.tidy(() => {
 
                     const maskVector = Array.from(rawVector).flat();
@@ -122,28 +122,31 @@ export const objectDetectionWrapper = (modelRef, imagenOriginal, segmentationTen
                     const maskLeve = mask3d.mul(0.9).add(0.1); // 0 → 0.5, 1 → 1
                     const maskedImg = imgToTensor.mul(maskLeve).toInt();
 
-                      // --- Anterior (máscara dura, completamente oculta) ---
-                      // const maskedImg = imgToTensor.mul(mask3d).toInt();
-
-                    /*
-                    const noise = tf.randomNormal(maskedImg.shape, 0, 0.001);
-                    const finalMaskedImg = maskedImg.add(noise.mul(tf.sub(1, mask))).toInt();
-                    */
-
                     return maskedImg;
                 });
 
+                let predictionInput = inputTensor
+
+                if (!usesTensorForPrediction) {
+                  await tf.browser.toPixels(inputTensor, reusableCanvasForPrediction)
+                  predictionInput = reusableCanvasForPrediction
+                }
 
                 // Guardar imagen de debug cada 100 iteraciones antes de dispose
                 if (debugImages.length < 30 && x.length > 100 && i % 100 === 0) {
-                  const canvas = document.createElement('canvas');
-                  canvas.width = imagenOriginal.width;
-                  canvas.height = imagenOriginal.height;
-                  await tf.browser.toPixels(inputTensor, canvas);
-                  debugImages.push(canvas.toDataURL()); // Guardamos como imagen base64
+                  if (reusableCanvasForPrediction) {
+                    debugImages.push(reusableCanvasForPrediction.toDataURL())
+                  } else {
+                    const canvas = document.createElement('canvas')
+                    canvas.width = imagenOriginal.width
+                    canvas.height = imagenOriginal.height
+                    await tf.browser.toPixels(inputTensor, canvas)
+                    debugImages.push(canvas.toDataURL()) // Guardamos como imagen base64
+                  }
                 }
 
-                const detections = await modelRef.PREDICTION(inputTensor, options);
+                // Llamada al predictor (modelRef debe exponer PREDICTION)
+                const detections = await modelRef.PREDICTION(predictionInput, options)
                 const vector = detectionsToVector(detections, labels);
                 batchVectors.push(vector);
 
@@ -160,4 +163,4 @@ export const objectDetectionWrapper = (modelRef, imagenOriginal, segmentationTen
         console.log('Wrapper - predicción final:', batchVectors);
         return batchVectors;
     };
-};
+}

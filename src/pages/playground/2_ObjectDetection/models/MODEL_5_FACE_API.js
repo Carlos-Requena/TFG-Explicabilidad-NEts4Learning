@@ -11,6 +11,7 @@ export class MODEL_5_FACE_API extends I_MODEL_OBJECT_DETECTION {
   i18n_TITLE = 'datasets-models.2-object-detection.face-api.title'
   URL = 'https://justadudewhohacks.github.io/face-api.js/docs/index.html'
   mirror = false
+  usesTensorForPrediction = false
 
   i18n_face_api = {
     years    : ('face-api.years'),
@@ -129,11 +130,6 @@ export class MODEL_5_FACE_API extends I_MODEL_OBJECT_DETECTION {
       fearful  : this.t('face-api.fearful'),
       disgusted: this.t('face-api.disgusted'),
       surprised: this.t('face-api.surprised'),
-    }
-    try {
-      this.predictor = this.getWrappedPredictor()
-    } catch (e) {
-      console.warn('Could not create wrapped predictor for FACE-API', e)
     }
   }
 

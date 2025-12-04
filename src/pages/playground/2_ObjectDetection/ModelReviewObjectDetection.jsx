@@ -21,6 +21,8 @@ import { delay } from '@/utils/utils'
 import {objectDetectionWrapper} from '@/core/explainability/ObjectDetectionWrapper'
 import ShapHeatmap from '@/core/explainability/ImageHeatMapChart'
 import { computeGridMap } from '@/utils/gridMap'
+import { computeSLICMap } from '@/utils/slic'
+
 
 
 tfjs.setBackend('webgl').then(() => {
@@ -93,6 +95,10 @@ export default function ModelReviewObjectDetection({ dataset }) {
    * @type {ReturnType<typeof useRef<HTMLCanvasElement>>}
    */
   const canvasImage_ref = useRef(null)
+
+ useEffect(() => {
+    setShowExplain(false)
+  }, [dataset, nSamples, gridSide])
 
   useEffect(() => {
     ReactGA.send({hitType: 'pageview', page: `/ModelReviewObjectDetection/${dataset}`, title: dataset })
@@ -377,18 +383,17 @@ export default function ModelReviewObjectDetection({ dataset }) {
     
         try {
     
-    // Basado en como funciona webshap KernelSHAP con imagenes y una pagina de SHAP normal miramos por GRIDS
           const nBackgroundRows = 10
-          const nFeatures = imgData.current.width * imgData.current.height * 3 // Suponiendo imagen RGB   
+          const nFeatures = imgData.current.width * imgData.current.height * 3 
     
           if (!originalImageCanvas || nFeatures === 0) {
             await alertHelper.alertInfo(t('info.insert-input'))
             setIsCalculo(false)
             return
           }
-            // 1. Predicción normal para extraer clases detectadas
+            // Predicción base
             const detectionsBase = await iModelRef.current.PREDICTION(imgData.current, { flipHorizontal: !iModelRef.current.mirror })
-            // 2. Extraer clases únicas en orden de aparición
+            // Sacamos clases detectadas
             const selectedLabels = Array.from(new Set(
               detectionsBase
                 .filter(det => det && typeof det.class === 'string')
@@ -397,14 +402,14 @@ export default function ModelReviewObjectDetection({ dataset }) {
             console.log('selectedLabels extraídos:', selectedLabels)
 
             // Creamos un mapa de rejilla
-            const { mapArray, numSegments } = computeGridMap(imgData.current.width, imgData.current.height, gridSide);
+            const { mapArray, numSegments } = computeSLICMap(imgData.current, imgData.current.width, imgData.current.height, gridSide);
             segmentationMap.current = mapArray
-            const segmentationTensor = tfjs.tensor2d(mapArray, [imgData.current.width, imgData.current.height], 'int32');
+            const segmentationTensor = tfjs.tensor2d(mapArray, [imgData.current.height, imgData.current.width], 'int32');
             const inputVector = Array(numSegments).fill(1);
-            backgroundData.current = Array(50) // Crea la CAJA EXTERIOR (Las filas)
+            backgroundData.current = Array(numSegments)
               .fill(null)
               .map(() => 
-                  Array(numSegments).fill(0)     // Crea las CAJAS INTERIORES (Las columnas)
+                  Array(numSegments).fill(0)
               );
             const debugImages = []; 
 
@@ -414,6 +419,7 @@ export default function ModelReviewObjectDetection({ dataset }) {
               imgData.current,
               segmentationTensor,
               debugImages,
+              iModelRef.current.usesTensorForPrediction,
               selectedLabels,
               {
                 flipHorizontal: !iModelRef.current.mirror,
@@ -822,32 +828,32 @@ export default function ModelReviewObjectDetection({ dataset }) {
                 <Card.Body>
                   {/* GALERÍA */}
                   {showExplain && galleryImages.length > 0 && (
-        <div className="mb-4">
-            <h5>Muestras de Perturbación:</h5>
-            {/* CORRECCIÓN CSS: flex-wrap para que no se salga si hay muchas, o mantener scroll */}
-            <div style={{
-                display:'flex', 
-                gap:'10px', 
-                overflowX:'auto', // Esto permite scroll horizontal, está bien
-                padding:'10px', 
-                background:'#f9f9f9', 
-                borderRadius:'8px',
-                minHeight: '100px' // Asegura que se vea el contenedor aunque las imágenes tarden
-            }}>
-                {galleryImages.map((imgSrc, idx) => (
-                    <div key={idx} style={{flex:'0 0 auto', textAlign:'center'}}>
-                        {/* Asegurarse que imgSrc es un string base64 válido */}
-                        <img 
-                            src={imgSrc} 
-                            style={{ height: 80, border: '1px solid #ccc', borderRadius:'4px', objectFit: 'contain' }} 
-                            alt={`sample-${idx}`} 
-                        />
-                        <div style={{fontSize:'10px', color:'#666'}}>#{idx+1}</div>
+                    <div className="mb-4">
+                        <h5>Muestras de Perturbación:</h5>
+                        {/* CORRECCIÓN CSS: flex-wrap para que no se salga si hay muchas, o mantener scroll */}
+                        <div style={{
+                            display:'flex', 
+                            gap:'10px', 
+                            overflowX:'auto', // Esto permite scroll horizontal, está bien
+                            padding:'10px', 
+                            background:'#f9f9f9', 
+                            borderRadius:'8px',
+                            minHeight: '100px' // Asegura que se vea el contenedor aunque las imágenes tarden
+                        }}>
+                            {galleryImages.map((imgSrc, idx) => (
+                                <div key={idx} style={{flex:'0 0 auto', textAlign:'center'}}>
+                                    {/* Asegurarse que imgSrc es un string base64 válido */}
+                                    <img 
+                                        src={imgSrc} 
+                                        style={{ height: 80, border: '1px solid #ccc', borderRadius:'4px', objectFit: 'contain' }} 
+                                        alt={`sample-${idx}`} 
+                                    />
+                                    <div style={{fontSize:'10px', color:'#666'}}>#{idx+1}</div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                ))}
-            </div>
-        </div>
-      )}
+                  )}
 
                   {/* HEATMAPS */}
                   {showExplain && explanationData && (
@@ -859,6 +865,7 @@ export default function ModelReviewObjectDetection({ dataset }) {
                                    <ShapHeatmap 
                                       imageSrc={canvasImage_ref.current.toDataURL()}
                                       shapValues={shapVals}
+                                      segmentationMap={segmentationMap.current}
                                    />
                                </div>
                            </Col>

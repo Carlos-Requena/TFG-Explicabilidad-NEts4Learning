@@ -9,6 +9,7 @@ export class MODEL_3_MOVE_NET_POSE_NET extends I_MODEL_OBJECT_DETECTION {
   i18n_TITLE = 'datasets-models.2-object-detection.move-net--pose-net.title'
   URL = 'https://github.com/tensorflow/tfjs-models/tree/master/pose-detection'
   mirror = false
+  usesTensorForPrediction = false
 
   COCO_CONNECTED_KEYPOINTS_PAIRS = [
     // CARA
@@ -96,11 +97,6 @@ export class MODEL_3_MOVE_NET_POSE_NET extends I_MODEL_OBJECT_DETECTION {
       enableSmoothing: true
     }
     this._modelDetector = await poseDetection.createDetector(model, modelConfig__MoveNet)
-    try {
-      this.predictor = this.getWrappedPredictor()
-    } catch (e) {
-      console.warn('Could not create wrapped predictor for MOVE-NET--POSE-NET', e)
-    }
   }
 
   async PREDICTION (input_image_or_video, config = { flipHorizontal: false }) {

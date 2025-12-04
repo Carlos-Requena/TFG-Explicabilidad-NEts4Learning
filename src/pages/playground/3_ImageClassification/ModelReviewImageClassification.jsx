@@ -40,6 +40,24 @@ export default function ModelReviewImageClassification ({ dataset }) {
 
   const iChartRef_modal = useRef()
   const iChartRef_image = useRef()
+  
+
+   // Aquí ponemos variables de explicabilidad
+  const [showExplain, setShowExplain] = useState(false)
+  const [explanationData, setExplanationData] = useState(null)
+  const [isCalculo, setIsCalculo] = useState(false)
+  const backgroundData = useRef([]) // Aquí irían datos de fondo para el KernelSHAP
+  const explainer= useRef(null)
+  const imgData = useRef(null)
+  const segmentationMap = useRef(null)
+
+  // Variables Debug
+  const [galleryImages, setGalleryImages] = useState([]) 
+
+  // Variables configurables por el usuario
+  const [gridSide, setGridSide] = useState(6)
+  const [nSamples, setNSamples] = useState(75)
+  const total_features = useRef(gridSide * gridSide)
 
   /**
    * @type {ReturnType<typeof useRef<HTMLCanvasElement>>}

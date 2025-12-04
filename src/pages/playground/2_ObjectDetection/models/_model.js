@@ -3,6 +3,9 @@ export default class I_MODEL_OBJECT_DETECTION {
   i18n_TITLE = ''
 
   _modelDetector = null
+  // Indica si el modelo prefiere recibir `tf.Tensor` para predicción.
+  // Puede ser sobreescrito por cada modelo concreto.
+  usesTensorForPrediction = true
   mirror = false
 
   constructor(_t) {
@@ -32,19 +35,6 @@ export default class I_MODEL_OBJECT_DETECTION {
    */
   getPredictor() {
     return this.PREDICTION.bind(this)
-  }
-
-  /**
-   * Return a wrapped predictor using the core objectDetectionWrapper.
-   * Accepts the same options as `objectDetectionWrapper` (methodName, adapter, allowNonTensor).
-   * If a model-level custom predictor is needed, models can override this method.
-   */
-  getWrappedPredictor(options = {}) {
-    // Lazy import to avoid cycles at module load time
-    // Use the project alias so bundler resolves correctly
-    // eslint-disable-next-line global-require
-    const { default: objectDetectionWrapper } = require('@/core/explainability/ObjectDetectionWrapper')
-    return objectDetectionWrapper(this.getPredictor(), options)
   }
 
   _drawRect(ctx, x, y, w, h) {

@@ -11,24 +11,19 @@ export const computeGridMap = (width, height, gridSize) => {
     
     // Array lineal que guardará el ID del segmento para cada píxel
     const mapArray = new Int32Array(totalPixels);
-    
-    // Total de segmentos (ej: 8 * 8 = 64)
     const numSegments = gridSize * gridSize;
-
-    // Tamaño de cada celda en píxeles (puede ser decimal)
+    
     const cellWidth = width / gridSize;
     const cellHeight = height / gridSize;
 
-    // Recorremos cada píxel de la imagen
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             
-            // Calculamos en qué columna y fila cae este píxel
+            // Ver donde cae este píxel en la rejilla
             let col = Math.floor(x / cellWidth);
             let row = Math.floor(y / cellHeight);
 
-            // Corrección de seguridad: Asegurar que no nos salimos del array
-            // (puede pasar en el último píxel si la división no es exacta)
+            // Checkeo de límite para la última fila/columna
             col = Math.min(col, gridSize - 1);
             row = Math.min(row, gridSize - 1);
 
