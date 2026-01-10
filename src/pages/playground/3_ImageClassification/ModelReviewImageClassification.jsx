@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Button, Card, Col, Container, Modal, Row } from 'react-bootstrap'
+import { Button, Card, Col, Container, Form, Modal, Row } from 'react-bootstrap'
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Title, Tooltip } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
 import * as _chartjs from 'chart.js'
@@ -9,6 +9,8 @@ import * as tfjs from '@tensorflow/tfjs'
 import ReactGA from 'react-ga4'
 
 import alertHelper from '@utils/alertHelper'
+import ShapHeatmap from '@/core/explainability/ImageHeatMapChart'
+import { runImageClassificationExplain } from '@pages/playground/3_ImageClassification/explainPrediction/runObjectDetectionExplain'
 
 import { UPLOAD, MODEL_IMAGE_MNIST } from '@/DATA_MODEL'
 import I_MODEL_IMAGE_CLASSIFICATION from './models/_model'
@@ -50,6 +52,7 @@ export default function ModelReviewImageClassification ({ dataset }) {
   const explainer= useRef(null)
   const imgData = useRef(null)
   const segmentationMap = useRef(null)
+  const [explainLabels, setExplainLabels] = useState([])
 
   // Variables Debug
   const [galleryImages, setGalleryImages] = useState([]) 
@@ -57,6 +60,7 @@ export default function ModelReviewImageClassification ({ dataset }) {
   // Variables configurables por el usuario
   const [gridSide, setGridSide] = useState(6)
   const [nSamples, setNSamples] = useState(75)
+  const [maskValue, setMaskValue] = useState(0.2)
   const total_features = useRef(gridSide * gridSide)
 
   /**
@@ -225,7 +229,63 @@ export default function ModelReviewImageClassification ({ dataset }) {
       const imageData = await iModelRef.current.GET_IMAGE_DATA(canvas, canvas_ctx)
       const { predictions } = await iModelRef.current.CLASSIFY_IMAGE(iModelRef_model.current, imageData)
       const barDataPrediction = await iModelRef.current.PREDICTION_FORMAT(predictions)
+
+      imgData.current = imageData
+      segmentationMap.current = null
+      backgroundData.current = []
+      setExplainLabels([])
+      setGalleryImages([])
+      setExplanationData(null)
+      setShowExplain(false)
+
       setBarDataImage(barDataPrediction)
+    }
+  }
+
+  const handleRequest_ExplainPrediction = async (e) => {
+    e.preventDefault()
+
+    if (showExplain) {
+      setShowExplain(false)
+      return
+    }
+
+    setIsCalculo(true)
+
+    try {
+      if (!imgData.current || !iModelRef_model.current) {
+        await alertHelper.alertInfo(t('info.insert-input'))
+        setIsCalculo(false)
+        return
+      }
+
+      const {
+        shapValues,
+        debugImages,
+        selectedLabels,
+        segmentationMapArray,
+        backgroundData: computedBackground,
+      } = await runImageClassificationExplain({
+        iModel: iModelRef.current,
+        modelInstance: iModelRef_model.current,
+        imageData: imgData.current,
+        gridSide,
+        nSamples,
+        maskValue,
+      })
+
+      segmentationMap.current = segmentationMapArray
+      backgroundData.current = computedBackground
+
+      setExplainLabels(selectedLabels)
+      setGalleryImages(debugImages)
+      setExplanationData(shapValues)
+      setShowExplain(true)
+      setIsCalculo(false)
+    } catch (error) {
+      console.error('Error calculating explainability', { error })
+      await alertHelper.alertError(t('Error calculating explainability'))
+      setIsCalculo(false)
     }
   }
 
@@ -366,6 +426,116 @@ export default function ModelReviewImageClassification ({ dataset }) {
               </Container>
             </Card.Body>
           </Card>
+
+          <Col xs={12}>
+            <Card className={'mt-3'}>
+              <Card.Header className="d-flex justify-content-between align-items-center">
+                <h3>Explicabilidad (SHAP)</h3>
+              </Card.Header>
+              <Card.Body>
+                {showExplain && galleryImages.length > 0 && (
+                  <div className="mb-4">
+                    <h5>Muestras de Perturbación:</h5>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '10px',
+                        overflowX: 'auto',
+                        padding: '10px',
+                        background: '#f9f9f9',
+                        borderRadius: '8px',
+                        minHeight: '100px',
+                      }}
+                    >
+                      {galleryImages.map((imgSrc, idx) => (
+                        <div key={idx} style={{ flex: '0 0 auto', textAlign: 'center' }}>
+                          <img
+                            src={imgSrc}
+                            style={{
+                              height: 80,
+                              border: '1px solid #ccc',
+                              borderRadius: '4px',
+                              objectFit: 'contain',
+                            }}
+                            alt={`sample-${idx}`}
+                          />
+                          <div style={{ fontSize: '10px', color: '#666' }}>#{idx + 1}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {showExplain && explanationData && (
+                  <Row>
+                    {explanationData.map((shapVals, idx) => {
+                      const label = (explainLabels && explainLabels.length > idx) ? explainLabels[idx] : (idx + 1)
+                      return (
+                        <Col key={idx} md={6} lg={4} className="mb-3">
+                          <div style={{ border: '1px solid #eee', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                            <h6 style={{ fontWeight: 'bold', marginBottom: '10px' }}>Clase: {String(label)}</h6>
+                            <ShapHeatmap
+                              imageSrc={originalImage_ref.current ? originalImage_ref.current.toDataURL() : null}
+                              shapValues={shapVals}
+                              segmentationMap={segmentationMap.current}
+                            />
+                          </div>
+                        </Col>
+                      )
+                    })}
+                  </Row>
+                )}
+
+                <div className="mt-3">
+                  <Form>
+                    <Form.Group className="mb-2" controlId="formGridSideBottomIC">
+                      <Form.Label>Grid Side (features per side)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min={2}
+                        max={32}
+                        value={gridSide}
+                        onChange={(e) => setGridSide(Number(e.target.value))}
+                      />
+                    </Form.Group>
+                    <Form.Group className="mb-2" controlId="formNSamplesBottomIC">
+                      <Form.Label>nSamples (SHAP)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min={1}
+                        max={500}
+                        value={nSamples}
+                        onChange={(e) => setNSamples(Number(e.target.value))}
+                      />
+                    </Form.Group>
+                    <Form.Group className="mb-2" controlId="formMaskBottomIC">
+                      <Form.Label>Máscara (0..1)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={maskValue}
+                        onChange={(e) => setMaskValue(Number(e.target.value))}
+                      />
+                    </Form.Group>
+                    <Button
+                      type="button"
+                      variant={'outline-info'}
+                      onClick={handleRequest_ExplainPrediction}
+                      disabled={isCalculo || !imgData.current}
+                    >
+                      {isCalculo ? 'Calculando...' : (showExplain ? 'Ocultar explicación' : 'Explicar Predicción')}
+                    </Button>
+                  </Form>
+                </div>
+
+                {showExplain && (!explanationData || explanationData.length === 0) && !isCalculo && (
+                  <p className="text-center text-muted">No hay datos de explicación disponibles.</p>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
         </Col>
       </Row>
     </Container>

@@ -7,6 +7,7 @@ export default class I_MODEL_OBJECT_DETECTION {
   // Puede ser sobreescrito por cada modelo concreto.
   usesTensorForPrediction = true
   mirror = false
+  faces = false
 
   constructor(_t) {
     this.t = _t
@@ -26,6 +27,10 @@ export default class I_MODEL_OBJECT_DETECTION {
 
   RENDER(_ctx, _predictions) {
 
+  }
+
+  NORMALIZE_PREDICTIONS(_predictions) {
+    return _predictions
   }
 
   /**

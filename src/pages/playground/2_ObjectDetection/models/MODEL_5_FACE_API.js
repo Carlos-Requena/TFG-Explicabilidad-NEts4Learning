@@ -12,6 +12,7 @@ export class MODEL_5_FACE_API extends I_MODEL_OBJECT_DETECTION {
   URL = 'https://justadudewhohacks.github.io/face-api.js/docs/index.html'
   mirror = false
   usesTensorForPrediction = false
+  faces = true
 
   i18n_face_api = {
     years    : ('face-api.years'),
@@ -147,7 +148,16 @@ export class MODEL_5_FACE_API extends I_MODEL_OBJECT_DETECTION {
       .withFaceExpressions()
     // .withFaceLandmarks()
     // .withFaceDescriptors()
+    //console.log('Detected faces (FACE-API):', predictions)
     return predictions
+  }
+
+  NORMALIZE_PREDICTIONS(predictions = [], labels) {
+    let vectorizedPredictions = []
+    for (const pred of predictions) {
+      vectorizedPredictions.push(pred.age)
+    }
+    return vectorizedPredictions
   }
 
   /**

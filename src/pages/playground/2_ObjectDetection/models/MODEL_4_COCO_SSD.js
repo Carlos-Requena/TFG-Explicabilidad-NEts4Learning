@@ -97,6 +97,21 @@ export class MODEL_4_COCO_SSD extends I_MODEL_OBJECT_DETECTION {
     return await this._modelDetector.detect(input_image_or_video, maxNumBoxes, minScore)
   }
 
+  NORMALIZE_PREDICTIONS(predictions, labels) {
+    if (!Array.isArray(labels) || labels.length === 0) return [];
+        const scores = new Array(labels.length).fill(0);
+        if (!Array.isArray(predictions)) return scores;
+        
+        for (const det of predictions) {
+            if (!det || typeof det.class !== 'string') continue;
+            const idx = labels.indexOf(det.class);
+            if (idx === -1) continue;
+            const score = typeof det.score === 'number' ? det.score : 0;
+            if (score > scores[idx]) scores[idx] = score;
+        }
+        return scores;
+  }
+
   /**
    * 
    * @param {CanvasRenderingContext2D} ctx 

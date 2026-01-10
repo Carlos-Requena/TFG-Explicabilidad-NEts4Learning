@@ -7,7 +7,6 @@ import { Trans, useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import Webcam from 'react-webcam'
 import * as tfjs from '@tensorflow/tfjs'
-import { KernelSHAP } from 'webshap'
 
 import { VERBOSE } from '@/CONSTANTS'
 import { UPLOAD } from '@/DATA_MODEL'
@@ -17,12 +16,8 @@ import { MAP_OD_CLASSES } from '@pages/playground/2_ObjectDetection/models'
 import alertHelper from '@utils/alertHelper'
 import I_MODEL_OBJECT_DETECTION from './models/_model'
 import { delay } from '@/utils/utils'
-
-import {objectDetectionWrapper} from '@/core/explainability/ObjectDetectionWrapper'
 import ShapHeatmap from '@/core/explainability/ImageHeatMapChart'
-import { computeGridMap } from '@/utils/gridMap'
-import { computeSLICMap } from '@/utils/slic'
-
+import { runObjectDetectionExplain } from './explainPrediction/runObjectDetectionExplain'
 
 
 tfjs.setBackend('webgl').then(() => {
@@ -54,14 +49,14 @@ export default function ModelReviewObjectDetection({ dataset }) {
   // Variables configurables por el usuario
   const [gridSide, setGridSide] = useState(6)
   const [nSamples, setNSamples] = useState(75)
+  const [mask, setMask] = useState(0)
   const total_features = useRef(gridSide * gridSide)
 
   const [isLoading, setLoading] = useState(true)
   const [isCameraEnable, setCameraEnable] = useState(false)
-  /**
-   * @type {ReturnType<typeof useState<'denied' | 'granted' | 'prompt'>>}
-   */
-  const [cameraPermission, setCameraPermission] = useState('prompt')
+  const [cameraPermission, setCameraPermission] = useState(
+    /** @type {'denied' | 'granted' | 'prompt'} */ ('prompt')
+  )
   const [processImage, setProcessImage] = useState({
     isProcessing: false,
     isProcessed : false,
@@ -98,7 +93,7 @@ export default function ModelReviewObjectDetection({ dataset }) {
 
  useEffect(() => {
     setShowExplain(false)
-  }, [dataset, nSamples, gridSide])
+  }, [dataset, nSamples, gridSide, mask])
 
   useEffect(() => {
     ReactGA.send({hitType: 'pageview', page: `/ModelReviewObjectDetection/${dataset}`, title: dataset })
@@ -375,81 +370,44 @@ export default function ModelReviewObjectDetection({ dataset }) {
         const originalImageCanvas = (/** @type {HTMLCanvasElement} */(document.getElementById('0_originalImageCanvas')))
 
         setIsCalculo(true)
-        if (iModelRef.current.PREDICTION.length === 0 && backgroundData.current.length === 0) {
-          await alertHelper.alertInfo(t('No prediction has been done'))
-          setIsCalculo(false)
-          return
-        }
+        // Nota: `Function.length` es el número de argumentos, no “si hay predicción previa”.
+        // Aquí solo validamos que exista una imagen cargada para explicar.
     
         try {
-    
-          const nBackgroundRows = 10
-          const nFeatures = imgData.current.width * imgData.current.height * 3 
-    
-          if (!originalImageCanvas || nFeatures === 0) {
+
+          const nFeatures = imgData.current?.width * imgData.current?.height * 3
+          if (!originalImageCanvas || !imgData.current || !nFeatures) {
             await alertHelper.alertInfo(t('info.insert-input'))
             setIsCalculo(false)
             return
           }
-            // Predicción base
-            const detectionsBase = await iModelRef.current.PREDICTION(imgData.current, { flipHorizontal: !iModelRef.current.mirror })
-            // Sacamos clases detectadas
-            const selectedLabels = Array.from(new Set(
-              detectionsBase
-                .filter(det => det && typeof det.class === 'string')
-                .map(det => det.class)
-            ))
-            console.log('selectedLabels extraídos:', selectedLabels)
 
-            // Creamos un mapa de rejilla
-            const { mapArray, numSegments } = computeSLICMap(imgData.current, imgData.current.width, imgData.current.height, gridSide);
-            segmentationMap.current = mapArray
-            const segmentationTensor = tfjs.tensor2d(mapArray, [imgData.current.height, imgData.current.width], 'int32');
-            const inputVector = Array(numSegments).fill(1);
-            backgroundData.current = Array(numSegments)
-              .fill(null)
-              .map(() => 
-                  Array(numSegments).fill(0)
-              );
-            const debugImages = []; 
+          const flipHorizontal = !iModelRef.current.mirror
 
-            // 3. Construimos el predictor compatible con WebSHAP usando esas clases
-            const predictor = objectDetectionWrapper(
-              iModelRef.current,
-              imgData.current,
-              segmentationTensor,
-              debugImages,
-              iModelRef.current.usesTensorForPrediction,
-              selectedLabels,
-              {
-                flipHorizontal: !iModelRef.current.mirror,
-              }
-            )
-            
-            console.log('[Explain] Predictor created:', predictor);
+          const {
+            shapValues,
+            debugImages,
+            segmentationMapArray,
+            backgroundData: computedBackground,
+          } = await runObjectDetectionExplain({
+            model: iModelRef.current,
+            imageData: imgData.current,
+            gridSide,
+            nSamples,
+            flipHorizontal,
+            maskValue: mask,
+          })
 
-          // Creamos el explainer usando el predictor y background data
-          explainer.current = new KernelSHAP(
-            predictor,
-            backgroundData.current,
-            0.2022
-          );
-          
-          console.log('[Explain] Explainer created:', explainer.current);
-          console.log('[Explain] Debug images:', debugImages);
+          segmentationMap.current = segmentationMapArray
+          backgroundData.current = computedBackground
 
-          // Explicamos la instancia (pasamos como 2D: [vector de máscaras])
-          console.log('Contenido inputVector (máscara grid):', inputVector)
-          let shapValues = await explainer.current.explainOneInstance(inputVector, nSamples)
-          console.log('[Explain] SHAP values:', shapValues)
-                    console.log('[Explain] Debug images:', debugImages);
           setGalleryImages(debugImages)
-          setIsCalculo(false)
           setShowExplain(true)
           setExplanationData(shapValues)
+          setIsCalculo(false)
         } catch (error) {
           console.error('Error calculating explainability', { error })
-          await alertHelper.alertError(t('Error calculating explainability'))
+          await alertHelper.alertError(t('Error calculating explainability'))   
           setIsCalculo(false)
         }
   }
@@ -882,6 +840,10 @@ export default function ModelReviewObjectDetection({ dataset }) {
                       <Form.Group className="mb-2" controlId="formNSamplesBottom">
                         <Form.Label>nSamples (SHAP)</Form.Label>
                         <Form.Control type="number" min={1} max={500} value={nSamples} onChange={e => setNSamples(Number(e.target.value))} />
+                      </Form.Group>
+                      <Form.Group className="mb-2" controlId="formMaskBottom">
+                        <Form.Label>Máscara (SHAP)</Form.Label>
+                        <Form.Control type="number" min={1} max={500} value={mask} onChange={e => setMask(Number(e.target.value))} />
                       </Form.Group>
                       <Button 
                         type="button"

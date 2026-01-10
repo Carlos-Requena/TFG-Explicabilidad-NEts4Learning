@@ -55,6 +55,17 @@ export default function ModelReviewTabularClassification (props) {
 
   const [prediction, setPrediction] = useState({ labels: [], data: [] })
 
+    // Función para obtener N filas aleatorias del dataset para usarlas de fondo
+  const sampleBackgroundData = (X_data, n = 50) => {
+    if (!X_data || X_data.length === 0) return []
+    
+    if (X_data.length <= n) return X_data
+    
+    const shuffled = [...X_data].sort(() => 0.5 - Math.random())
+    
+    return shuffled.slice(0, n)
+  }
+
   useEffect(() => {
     setShowExplain(false)
   }, [prediction])
@@ -72,12 +83,20 @@ export default function ModelReviewTabularClassification (props) {
 
   useEffect(() => {
     if (VERBOSE) console.debug('useEffect [dataToPredict]')
-    // TODO encoders to dataToPredict
+    
     const init = async () => {
       const datasets = await iModelInstance_ref.current.DATASETS()
       if (datasets.length === 0) return
-      const _vectorValuesEncoders = DataFrameUtils.DataFrameApplyEncoders(datasets[0].data_processed.encoders, dataToPredict, iModelInstance_ref.current.DATA_DEFAULT_KEYS)
+      
+      const _vectorValuesEncoders = DataFrameUtils.DataFrameApplyEncoders(
+        datasets[0].data_processed.encoders, 
+        dataToPredict, 
+        iModelInstance_ref.current.DATA_DEFAULT_KEYS
+      )
+      
       setVectorToPredict(_vectorValuesEncoders)
+      setShowExplain(false) 
+      setExplanationData(null)
     }
     init().then()
   }, [dataToPredict])
@@ -90,16 +109,24 @@ export default function ModelReviewTabularClassification (props) {
     if (VERBOSE) console.debug('useEffect[init]')
     const init = async () => {
       await tfjs.ready()
-      // =========================
+      
       if (dataset === UPLOAD) {
         console.error('Error, option not valid')
       } else if (dataset in MAP_TC_CLASSES) {
         try {
           const _iModelClass = MAP_TC_CLASSES[dataset]
           iModelInstance_ref.current = new _iModelClass(t)
+          
+          // Cargar modelo
           model_ref.current = await iModelInstance_ref.current.LOAD_LAYERS_MODEL({ onProgress: handleChange_onProgress })
+          
+          // Cargar datos por defecto
           setDataToPredict(iModelInstance_ref.current.DATA_DEFAULT)
+          
+          // Cargar datasets completos (Entrenamiento/Test)
           const _datasets = await iModelInstance_ref.current.DATASETS()
+          
+          // Codificar vector por defecto
           const _applyEncoders = DataFrameUtils.DataFrameApplyEncoders(
             _datasets[0].data_processed.encoders,
             iModelInstance_ref.current.DATA_DEFAULT,
@@ -107,40 +134,46 @@ export default function ModelReviewTabularClassification (props) {
           )
           setVectorToPredict(_applyEncoders)
 
-            // Fill backgroundData.current with representative processed rows (limit to 50)
-            try {
-              const X = _datasets[0].data_processed && _datasets[0].data_processed.X
-              if (X) {
-                const bgRows = DataFrameUtils.DataFrameIterRows(X)
-                const maxRows = Math.min(50, bgRows.length)
-                backgroundData.current = bgRows.slice(0, maxRows)
-                console.log('[Explain] backgroundData initialized with', backgroundData.current.length, 'rows')
-              } else {
-                console.warn('[Explain] dataset has no data_processed.X to build backgroundData')
-              }
-            } catch (e) {
-              console.warn('[Explain] could not initialize backgroundData', e)
-            }
-            
+          // ============================================================
+          // --- CORRECCIÓN AQUÍ: ASIGNAR BACKGROUND DATA REAL ---
+          // ============================================================
+          try {
+             // Accedemos a los datos procesados (X) del primer dataset
+             const X_source = _datasets[0]?.data_processed?.X
+             
+             if (X_source) {
+                 // Convertimos el formato DataFrame a Array de Arrays si es necesario
+                 // Asumo que DataFrameIterRows devuelve un array de arrays [ [val1, val2], [val1, val2] ]
+                 const allRows = DataFrameUtils.DataFrameIterRows(X_source)
+                 
+                 // Seleccionamos 50 filas aleatorias
+                 backgroundData.current = sampleBackgroundData(allRows, 50)
+                 
+                 console.log(`[SHAP Init] Background Data cargado con ${backgroundData.current.length} muestras reales.`)
+                 console.log('Muestra fila 0:', backgroundData.current[0])
+             } else {
+                 console.warn('[SHAP Init] No se encontró data_processed.X')
+             }
+          } catch (bgError) {
+              console.error('[SHAP Init] Error al extraer background data:', bgError)
+          }
+          // ============================================================
+
           setIsLoading(false)
           setIsButtonToPredictDisabled(false)
           setShowExplain(false)
           await alertHelper.alertSuccess(t('model-loaded-successfully'))
+
         } catch (e) {
           console.error('Error, can\'t load model', { e })
         }
       } else {
-        console.error('Error, model not valid', { ID: dataset })
-        await alertHelper.alertError('Error, option not valid')  
+        // Manejo de error dataset no válido...
         navigate('/404')
       }
-      // =========================
     }
 
-    init()
-      .then((_r) => {
-        console.debug('init end')
-      })
+    init().then(() => console.debug('init end'))
   }, [dataset, navigate, t])
 
   const handleSubmit_PredictVector = async (e) => {

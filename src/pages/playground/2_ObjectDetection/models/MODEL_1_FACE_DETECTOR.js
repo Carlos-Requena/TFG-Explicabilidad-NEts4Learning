@@ -12,6 +12,7 @@ export class MODEL_1_FACE_DETECTOR extends I_MODEL_OBJECT_DETECTION {
   URL = ''
   mirror = true
   usesTensorForPrediction = false
+  faces = true
 
   /**
    * @type {faceDetection.FaceDetector}

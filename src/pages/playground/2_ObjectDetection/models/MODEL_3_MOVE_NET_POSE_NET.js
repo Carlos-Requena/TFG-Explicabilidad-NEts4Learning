@@ -117,7 +117,35 @@ export class MODEL_3_MOVE_NET_POSE_NET extends I_MODEL_OBJECT_DETECTION {
       scoreThreshold: 0.3,
       nmsRadius     : 20
     }
-    return await this._modelDetector.estimatePoses(input_image_or_video, estimationConfig__MoveNet)
+    let prediction = await this._modelDetector.estimatePoses(input_image_or_video, estimationConfig__MoveNet)
+    console.log('MOVE-NET--POSE-NET prediction: ', prediction)
+    return prediction
+  }
+
+  NORMALIZE_PREDICTIONS (predictions, _labels) {
+    // Devolvemos un vector con la cantidad de poses detectadas por cada imagen
+    const vectorPredictions = []
+    if (!predictions || predictions.length === 0) {
+      for (let i = 0; i <= 16; i++) {
+        vectorPredictions.push(0)
+      }
+      return vectorPredictions
+    }
+
+    for (let j = 0; j < predictions.length; j++) {
+      console.log('POSE KEYPOINTS:', predictions[j].keypoints)
+      for (let i = 0; i < predictions[j].keypoints.length; i++) {
+        if (predictions[j].keypoints[i].score != null && predictions[j].keypoints[i].score >= 0.2) {
+          console.log('KEYPOINT DETECTED:', predictions[j].keypoints[i])
+          vectorPredictions.push(1)
+        } else {
+          console.log('KEYPOINT NOT DETECTED:', predictions[j].keypoints[i])
+          vectorPredictions.push(0)
+        }
+      }
+    }
+    console.log('Normalized MOVE-NET--POSE-NET predictions: ', vectorPredictions)
+    return vectorPredictions
   }
 
   /**

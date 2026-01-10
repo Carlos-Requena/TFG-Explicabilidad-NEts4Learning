@@ -1,121 +1,506 @@
 /**
- * Genera un mapa de segmentación usando SLIC (Paper Version).
- * Compatible con la estructura de salida de computeGridMap.
- * * @param {ImageData} imageData - Datos de píxeles (ctx.getImageData)
- * @param {number} width - Ancho
- * @param {number} height - Alto
- * @param {number} numSegmentsApprox - Número deseado de segmentos (ej. 200)
- * @returns {object} { mapArray: Int32Array, numSegments: number }
+ * Javascript implementation of an image segmentation algorithm of
+ *
+ * SLIC Superpixels
+ * Radhakrishna Achanta, Appu Shaji, Kevin Smith, Aurelien Lucchi, Pascal
+ * Fua, and Sabine Süsstrunk
+ * IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 34,
+ * num. 11, p. 2274 - 2282, May 2012.
+ *
+ * and based on the VLFeat implementation.
+ *
+ * Originally written by LongLong Yu 2014.
+ * Modified by Mingyu Kim
+ * Modified by Jay Wang for WebSHAP
+ * Adapted for TFJS pipeline integration
  */
-export const computeSLICMap = (imageData, width, height, numSegmentsApprox = 200) => {
-    const data = imageData.data;
-    const totalPixels = width * height;
+
+// Función auxiliar para crear ImageData en el navegador
+const createImageData = (width, height) => {
+  const canvas = document.createElement('canvas');
+  canvas.style.visibility = 'hidden';
+  const context = canvas.getContext('2d');
+  const imageData = context.createImageData(width, height);
+  canvas.remove();
+  return imageData;
+};
+
+class BaseSegmentation {
+  constructor(imageData) {
+    if (!(imageData instanceof ImageData)) throw 'Invalid ImageData';
+    this.imageData = createImageData(imageData.width, imageData.height);
+    this.imageData.data.set(imageData.data);
+  }
+}
+
+export class SLIC extends BaseSegmentation {
+  constructor(imageData, options) {
+    super(imageData);
+    options = options || {};
+    this.regionSize = options.regionSize || 16;
+    this.minRegionSize =
+      options.minRegionSize || Math.round(this.regionSize * 0.8);
+    this.maxIterations = options.maxIterations || 10;
     
-    // ESTO ES TU "mapArray": un array donde el índice es el píxel y el valor es el ID del segmento
-    const mapArray = new Int32Array(totalPixels).fill(-1);
-    const distances = new Float32Array(totalPixels).fill(Infinity);
+    this._numSegments = 0;
+    this.rawLabels = null; // Aquí guardaremos el array final para TFJS
+
+    this._compute();
+  }
+
+  get result() {
+    return this._result;
+  }
+
+  get numSegments() {
+    return this._numSegments;
+  }
+
+  _compute() {
+    this._result = this.computeSLICSegmentation(
+      this.imageData,
+      this.regionSize,
+      this.minRegionSize,
+      this.maxIterations
+    );
+  }
+
+  // Convert RGBA into XYZ color space.
+  rgb2xyz(rgba, w, h) {
+    const xyz = new Float32Array(3 * w * h),
+      gamma = 2.2;
+    for (let i = 0; i < w * h; i++) {
+      let r = rgba[4 * i + 0] * 0.00392156862,
+        g = rgba[4 * i + 1] * 0.00392156862,
+        b = rgba[4 * i + 2] * 0.00392156862;
+      r = Math.pow(r, gamma);
+      g = Math.pow(g, gamma);
+      b = Math.pow(b, gamma);
+      xyz[i] = r * 0.488718 + g * 0.31068 + b * 0.200602;
+      xyz[i + w * h] = r * 0.176204 + g * 0.812985 + b * 0.0108109;
+      xyz[i + 2 * w * h] = g * 0.0102048 + b * 0.989795;
+    }
+    return xyz;
+  }
+
+  // Convert XYZ to Lab.
+  xyz2lab(xyz, w, h) {
+    function f(x) {
+      if (x > 0.00856) return Math.pow(x, 0.33333333);
+      else return 7.78706891568 * x + 0.1379310336;
+    }
+    const xw = 1.0 / 3.0,
+      yw = 1.0 / 3.0,
+      Yw = 1.0,
+      Xw = xw / yw,
+      Zw = (1 - xw - yw) / (yw * Yw),
+      ix = 1.0 / Xw,
+      iy = 1.0 / Yw,
+      iz = 1.0 / Zw,
+      labData = new Float32Array(3 * w * h);
+    for (let i = 0; i < w * h; i++) {
+      const fx = f(xyz[i] * ix),
+        fy = f(xyz[w * h + i] * iy),
+        fz = f(xyz[2 * w * h + i] * iz);
+      labData[i] = 116.0 * fy - 16.0;
+      labData[i + w * h] = 500.0 * (fx - fy);
+      labData[i + 2 * w * h] = 200.0 * (fy - fz);
+    }
+    return labData;
+  }
+
+  // Compute gradient.
+  computeEdge(image, edgeMap, w, h) {
+    for (let k = 0; k < 3; k++) {
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const a = image[k * w * h + y * w + x - 1],
+            b = image[k * w * h + y * w + x + 1],
+            c = image[k * w * h + (y + 1) * w + x],
+            d = image[k * w * h + (y - 1) * w + x];
+          edgeMap[y * w + x] += Math.pow(a - b, 2) + Math.pow(c - d, 2);
+        }
+      }
+    }
+  }
+
+  // Initialize superpixel clusters.
+  initializeKmeansCenters(
+    image,
+    edgeMap,
+    centers,
+    clusterParams,
+    numRegionsX,
+    numRegionsY,
+    regionSize,
+    imW,
+    imH
+  ) {
+    let i = 0,
+      j = 0,
+      x,
+      y;
+    for (let v = 0; v < numRegionsY; v++) {
+      for (let u = 0; u < numRegionsX; u++) {
+        let centerx = 0,
+          centery = 0,
+          minEdgeValue = Infinity;
+        x = Math.floor(Math.round(regionSize * (u + 0.5)));
+        y = Math.floor(Math.round(regionSize * (v + 0.5)));
+        x = Math.max(Math.min(x, imW - 1), 0);
+        y = Math.max(Math.min(y, imH - 1), 0);
+        for (
+          let yp = Math.max(0, y - 1);
+          yp <= Math.min(imH - 1, y + 1);
+          ++yp
+        ) {
+          for (
+            let xp = Math.max(0, x - 1);
+            xp <= Math.min(imW - 1, x + 1);
+            ++xp
+          ) {
+            const thisEdgeValue = edgeMap[yp * imW + xp];
+            if (thisEdgeValue < minEdgeValue) {
+              minEdgeValue = thisEdgeValue;
+              centerx = xp;
+              centery = yp;
+            }
+          }
+        }
+
+        centers[i++] = centerx;
+        centers[i++] = centery;
+        centers[i++] = image[centery * imW + centerx];
+        centers[i++] = image[imW * imH + centery * imW + centerx];
+        centers[i++] = image[2 * imW * imH + centery * imW + centerx];
+        clusterParams[j++] = 10 * 10;
+        clusterParams[j++] = regionSize * regionSize;
+      }
+    }
+  }
+
+  computeCenters(
+    image,
+    segmentation,
+    masses,
+    centers,
+    numRegions,
+    imW,
+    imH
+  ) {
+    let region;
+    for (let y = 0; y < imH; y++) {
+      for (let x = 0; x < imW; x++) {
+        region = segmentation[x + y * imW];
+        masses[region]++;
+        centers[region * 5 + 0] += x;
+        centers[region * 5 + 1] += y;
+        centers[region * 5 + 2] += image[y * imW + x];
+        centers[region * 5 + 3] += image[imW * imH + y * imW + x];
+        centers[region * 5 + 4] += image[2 * imW * imH + y * imW + x];
+      }
+    }
+    for (region = 0; region < numRegions; region++) {
+      const iMass = 1.0 / Math.max(masses[region], 1e-8);
+      centers[region * 5] = centers[region * 5] * iMass;
+      centers[region * 5 + 1] = centers[region * 5 + 1] * iMass;
+      centers[region * 5 + 2] = centers[region * 5 + 2] * iMass;
+      centers[region * 5 + 3] = centers[region * 5 + 3] * iMass;
+      centers[region * 5 + 4] = centers[region * 5 + 4] * iMass;
+    }
+  }
+
+  eliminateSmallRegions(
+    segmentation,
+    minRegionSize,
+    numPixels,
+    imW,
+    imH
+  ) {
+    const cleaned = new Int32Array(numPixels),
+      segment = new Int32Array(numPixels),
+      dx = [1, -1, 0, 0],
+      dy = [0, 0, 1, -1];
+    let segmentSize,
+      label,
+      cleanedLabel,
+      numExpanded,
+      pixel,
+      x,
+      y,
+      xp,
+      yp,
+      neighbor,
+      direction;
+    for (pixel = 0; pixel < numPixels; ++pixel) {
+      if (cleaned[pixel]) continue;
+      label = segmentation[pixel];
+      numExpanded = 0;
+      segmentSize = 0;
+      segment[segmentSize++] = pixel;
+      cleanedLabel = label + 1;
+      cleaned[pixel] = label + 1;
+      x = pixel % imW;
+      y = Math.floor(pixel / imW);
+      for (direction = 0; direction < 4; direction++) {
+        xp = x + dx[direction];
+        yp = y + dy[direction];
+        neighbor = xp + yp * imW;
+        if (0 <= xp && xp < imW && 0 <= yp && yp < imH && cleaned[neighbor])
+          cleanedLabel = cleaned[neighbor];
+      }
+      while (numExpanded < segmentSize) {
+        const open = segment[numExpanded++];
+        x = open % imW;
+        y = Math.floor(open / imW);
+        for (direction = 0; direction < 4; ++direction) {
+          xp = x + dx[direction];
+          yp = y + dy[direction];
+          neighbor = xp + yp * imW;
+          if (
+            0 <= xp &&
+            xp < imW &&
+            0 <= yp &&
+            yp < imH &&
+            cleaned[neighbor] === 0 &&
+            segmentation[neighbor] === label
+          ) {
+            cleaned[neighbor] = label + 1;
+            segment[segmentSize++] = neighbor;
+          }
+        }
+      }
+      if (segmentSize < minRegionSize) {
+        while (segmentSize > 0) cleaned[segment[--segmentSize]] = cleanedLabel;
+      }
+    }
+    for (pixel = 0; pixel < numPixels; ++pixel) --cleaned[pixel];
+    for (let i = 0; i < numPixels; ++i) segmentation[i] = cleaned[i];
+  }
+
+  updateClusterParams(
+    segmentation,
+    mcMap,
+    msMap,
+    clusterParams
+  ) {
+    const mc = new Float32Array(clusterParams.length / 2),
+      ms = new Float32Array(clusterParams.length / 2);
+    for (let i = 0; i < segmentation.length; i++) {
+      const region = segmentation[i];
+      if (mc[region] < mcMap[region]) {
+        mc[region] = mcMap[region];
+        clusterParams[region * 2 + 0] = mcMap[region];
+      }
+      if (ms[region] < msMap[region]) {
+        ms[region] = msMap[region];
+        clusterParams[region * 2 + 1] = msMap[region];
+      }
+    }
+  }
+
+  assignSuperpixelLabel(
+    im,
+    segmentation,
+    mcMap,
+    msMap,
+    distanceMap,
+    centers,
+    clusterParams,
+    numRegionsX,
+    numRegionsY,
+    regionSize,
+    imW,
+    imH
+  ) {
+    let x, y;
+    for (let i = 0; i < distanceMap.length; ++i) distanceMap[i] = Infinity;
+    const S = regionSize;
+    for (let region = 0; region < numRegionsX * numRegionsY; ++region) {
+      const cx = Math.round(centers[region * 5 + 0]),
+        cy = Math.round(centers[region * 5 + 1]);
+      for (y = Math.max(0, cy - S); y < Math.min(imH, cy + S); ++y) {
+        for (x = Math.max(0, cx - S); x < Math.min(imW, cx + S); ++x) {
+          const spatial = (x - cx) * (x - cx) + (y - cy) * (y - cy),
+            dR = im[y * imW + x] - centers[5 * region + 2],
+            dG = im[imW * imH + y * imW + x] - centers[5 * region + 3],
+            dB = im[2 * imW * imH + y * imW + x] - centers[5 * region + 4],
+            appearance = dR * dR + dG * dG + dB * dB,
+            distance = Math.sqrt(
+              appearance / clusterParams[region * 2 + 0] +
+                spatial / clusterParams[region * 2 + 1]
+            );
+          if (distance < distanceMap[y * imW + x]) {
+            distanceMap[y * imW + x] = distance;
+            segmentation[y * imW + x] = region;
+          }
+        }
+      }
+    }
+    for (y = 0; y < imH; ++y) {
+      for (x = 0; x < imW; ++x) {
+        if (clusterParams[segmentation[y * imW + x] * 2] < mcMap[y * imW + x])
+          clusterParams[segmentation[y * imW + x] * 2] = mcMap[y * imW + x];
+        if (
+          clusterParams[segmentation[y * imW + x] * 2 + 1] < msMap[y * imW + x]
+        )
+          clusterParams[segmentation[y * imW + x] * 2 + 1] = msMap[y * imW + x];
+      }
+    }
+  }
+
+  computeResidualError(prevCenters, currentCenters) {
+    let error = 0.0;
+    for (let i = 0; i < prevCenters.length; ++i) {
+      const d = prevCenters[i] - currentCenters[i];
+      error += Math.sqrt(d * d);
+    }
+    return error;
+  }
+
+  remapLabels(segmentation) {
+    const map = {};
+    let index = 0;
+    for (let i = 0; i < segmentation.length; ++i) {
+      const label = segmentation[i];
+      if (map[label] === undefined) map[label] = index++;
+      segmentation[i] = map[label];
+    }
+    return index;
+  }
+
+  encodeLabels(segmentation, data) {
+    for (let i = 0; i < segmentation.length; ++i) {
+      const value = Math.floor(segmentation[i]);
+      data[4 * i + 0] = value & 255;
+      data[4 * i + 1] = (value >>> 8) & 255;
+      data[4 * i + 2] = (value >>> 16) & 255;
+      data[4 * i + 3] = 255;
+    }
+  }
+
+  computeSLICSegmentation(imageData, regionSize, minRegionSize, maxIterations) {
+    const imWidth = imageData.width,
+      imHeight = imageData.height,
+      numRegionsX = Math.floor(imWidth / regionSize),
+      numRegionsY = Math.floor(imHeight / regionSize),
+      numRegions = Math.floor(numRegionsX * numRegionsY),
+      numPixels = Math.floor(imWidth * imHeight),
+      edgeMap = new Float32Array(numPixels),
+      masses = new Array(numPixels),
+      currentCenters = new Float32Array((2 + 3) * numRegions),
+      newCenters = new Float32Array((2 + 3) * numRegions),
+      clusterParams = new Float32Array(2 * numRegions),
+      mcMap = new Float32Array(numPixels),
+      msMap = new Float32Array(numPixels),
+      distanceMap = new Float32Array(numPixels),
+      xyzData = this.rgb2xyz(imageData.data, imWidth, imHeight),
+      labData = this.xyz2lab(xyzData, imWidth, imHeight);
+
+    this.computeEdge(labData, edgeMap, imWidth, imHeight);
     
-    // --- 1. Inicialización (Paper Algoritmo 1) ---
-    const K_approx = numSegmentsApprox;
-    const S = Math.floor(Math.sqrt(totalPixels / K_approx));
-    const centers = []; 
+    this.initializeKmeansCenters(
+      labData,
+      edgeMap,
+      currentCenters,
+      clusterParams,
+      numRegionsX,
+      numRegionsY,
+      regionSize,
+      imWidth,
+      imHeight
+    );
+    
+    const segmentation = new Int32Array(numPixels);
+    
+    for (let iter = 0; iter < maxIterations; ++iter) {
+      this.assignSuperpixelLabel(
+        labData,
+        segmentation,
+        mcMap,
+        msMap,
+        distanceMap,
+        currentCenters,
+        clusterParams,
+        numRegionsX,
+        numRegionsY,
+        regionSize,
+        imWidth,
+        imHeight
+      );
+      
+      this.updateClusterParams(segmentation, mcMap, msMap, clusterParams);
+      
+      for (let i = 0; i < masses.length; ++i) masses[i] = 0;
+      for (let i = 0; i < newCenters.length; ++i) newCenters[i] = 0;
+      
+      this.computeCenters(
+        labData,
+        segmentation,
+        masses,
+        newCenters,
+        numRegions,
+        imWidth,
+        imHeight
+      );
+      
+      const error = this.computeResidualError(currentCenters, newCenters);
+      if (error < 1e-5) break;
+      
+      for (let i = 0; i < currentCenters.length; ++i)
+        currentCenters[i] = newCenters[i];
+    }
+    
+    this.eliminateSmallRegions(
+      segmentation,
+      minRegionSize,
+      numPixels,
+      imWidth,
+      imHeight
+    );
+    
+    // 1. Remapeamos para tener IDs secuenciales
+    this._numSegments = this.remapLabels(segmentation);
+    // 2. Guardamos el array raw para TFJS
+    this.rawLabels = segmentation; 
+    
+    // 3. Generamos la imagen visual 
+    const result = createImageData(imWidth, imHeight);
+    this.encodeLabels(segmentation, result.data);
+    
+    return result;
+  }
+}
 
-    // Muestreo inicial en rejilla
-    for (let y = Math.floor(S/2); y < height; y += S) {
-        for (let x = Math.floor(S/2); x < width; x += S) {
-            const idx = (y * width + x) * 4;
-            centers.push({
-                x: x, y: y,
-                r: data[idx], g: data[idx+1], b: data[idx+2]
-            });
-        }
+
+// --- TU FUNCIÓN WRAPPER UNIFICADA ---
+export const computeSLICMap = (imageData, numSegmentsApprox = 15) => {
+    
+    // Validar entrada
+    if (!imageData || !imageData.width || !imageData.height) {
+        console.error("SLIC Error: imageData inválido");
+        return null;
     }
 
-    const K = centers.length; // Número real de segmentos que salieron
-    const m = 10; // Factor de compacidad (10-20 es estándar)
-    const invS = 1.0 / S; 
-    const m_sq_invS_sq = (m * m) * (invS * invS);
+    const totalPixels = imageData.width * imageData.height;
+    const computedRegionSize = Math.floor(Math.sqrt(totalPixels / numSegmentsApprox));
 
-    // --- 2. Bucle Principal (Assignment + Update) ---
-    // 5 iteraciones son suficientes para SHAP según la literatura
-    for (let iter = 0; iter < 5; iter++) {
-        
-        // A. Assignment (Mapeo de píxeles a centros)
-        for (let k = 0; k < K; k++) {
-            const center = centers[k];
-            
-            // Buscar solo en ventana 2S x 2S (La clave de la velocidad de SLIC)
-            const yMin = Math.max(0, Math.floor(center.y - S));
-            const yMax = Math.min(height, Math.floor(center.y + S));
-            const xMin = Math.max(0, Math.floor(center.x - S));
-            const xMax = Math.min(width, Math.floor(center.x + S));
+    const options = {
+        regionSize: computedRegionSize || 30,
+        minRegionSize: Math.round(computedRegionSize * 0.8), 
+        maxIterations: 10
+    };
 
-            for (let y = yMin; y < yMax; y++) {
-                for (let x = xMin; x < xMax; x++) {
-                    const i = y * width + x; // Índice lineal del píxel
-                    
-                    // Distancia Color
-                    const idx = i * 4;
-                    const dc_sq = (data[idx] - center.r)**2 + 
-                                  (data[idx+1] - center.g)**2 + 
-                                  (data[idx+2] - center.b)**2;
+    // Ejecutar
+    const slicEngine = new SLIC(imageData, options);
 
-                    // Distancia Espacial
-                    const ds_sq = (x - center.x)**2 + (y - center.y)**2;
+    const mapArray = slicEngine.rawLabels;
+    const numSegments = slicEngine.numSegments;
 
-                    // Distancia Total (D)
-                    const D = dc_sq + (ds_sq * m_sq_invS_sq);
+    console.log(`SLIC (Standard) generado: ${numSegments} segmentos (RegionSize: ${options.regionSize}px).`);
 
-                    if (D < distances[i]) {
-                        distances[i] = D;
-                        mapArray[i] = k; // <--- AQUÍ SE LLENA EL MAPA
-                    }
-                }
-            }
-        }
-
-        // B. Update (Recalcular centros)
-        const sumR = new Float32Array(K).fill(0);
-        const sumG = new Float32Array(K).fill(0);
-        const sumB = new Float32Array(K).fill(0);
-        const sumX = new Float32Array(K).fill(0);
-        const sumY = new Float32Array(K).fill(0);
-        const counts = new Int32Array(K).fill(0);
-
-        for (let i = 0; i < totalPixels; i++) {
-            const k = mapArray[i];
-            if (k === -1) continue;
-            const idx = i * 4;
-            sumR[k] += data[idx];
-            sumG[k] += data[idx+1];
-            sumB[k] += data[idx+2];
-            sumX[k] += (i % width); 
-            sumY[k] += Math.floor(i / width);
-            counts[k]++;
-        }
-
-        for (let k = 0; k < K; k++) {
-            if (counts[k] > 0) {
-                centers[k].r = sumR[k] / counts[k];
-                centers[k].g = sumG[k] / counts[k];
-                centers[k].b = sumB[k] / counts[k];
-                centers[k].x = sumX[k] / counts[k];
-                centers[k].y = sumY[k] / counts[k];
-            }
-        }
-    }
-
-    // Limpieza de píxeles huérfanos (-1) asignándolos al nearest neighbor
-    // (Paso opcional rápido para evitar agujeros negros en SHAP)
-    for(let i=0; i<totalPixels; i++) {
-        if(mapArray[i] === -1) mapArray[i] = mapArray[i-1] || 0;
-    }
-
-    console.log('SLIC Map generado:', { width, height, numSegments: K });
-
-    // --- RETORNO EXACTO COMO EL DE GRID ---
     return {
-        mapArray: mapArray, // El Int32Array con los IDs
-        numSegments: K      // El número real de segmentos generados
+        mapArray: mapArray,
+        numSegments: numSegments
     };
 };

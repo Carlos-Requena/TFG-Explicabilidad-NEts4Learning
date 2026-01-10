@@ -10,6 +10,7 @@ export class MODEL_2_FACE_MESH extends I_MODEL_OBJECT_DETECTION {
   URL = 'https://github.com/tensorflow/tfjs-models/tree/master/face-landmarks-detection'
   mirror = true
   usesTensorForPrediction = true
+  faces = true
 
   /**
    * @type {faceLandmarksDetection.FaceLandmarksDetector}
@@ -84,13 +85,30 @@ export class MODEL_2_FACE_MESH extends I_MODEL_OBJECT_DETECTION {
     this._modelDetector = await faceLandmarksDetection.createDetector(model, mediaPipeFaceMeshMediaPipeModelConfig)
   }
 
-  async PREDICTION (input_image_or_video, config = { flipHorizontal: false }) {
+  async PREDICTION (input_image_or_video, config = { flipHorizontal: false, staticImageMode: false }) {
     if (this._modelDetector === null) return []
-    return await this._modelDetector.estimateFaces(input_image_or_video, { flipHorizontal: config.flipHorizontal, staticImageMode: false })
+    const faces = await this._modelDetector.estimateFaces(input_image_or_video, {
+      flipHorizontal: Boolean(config.flipHorizontal),
+      staticImageMode: Boolean(config.staticImageMode),
+    })
+    console.log('Detected faces (FACE-MESH):', faces)
+    return faces
+  }
+
+  NORMALIZE_PREDICTIONS(predictions, labels) {
+    let vectorPredictions = []
+    // El modelo solo devuelve si tiene cara o no, es decir 0 o 1 objeto
+    for (let i = 0; i < predictions.length; i++) {
+      if (!predictions[i] || predictions[i].length === 0) {
+        vectorPredictions.push(0)
+      } else {
+        vectorPredictions.push(1)
+      }
+    }
+    return vectorPredictions
   }
 
   /**
-   * 
    * @param {CanvasRenderingContext2D} ctx 
    * @param {faceLandmarksDetection.Face[]} faces 
    */
@@ -102,5 +120,7 @@ export class MODEL_2_FACE_MESH extends I_MODEL_OBJECT_DETECTION {
       }
     }
   }
+
+  
 
 }
