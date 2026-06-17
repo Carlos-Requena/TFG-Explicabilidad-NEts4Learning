@@ -152,12 +152,37 @@ export class MODEL_5_FACE_API extends I_MODEL_OBJECT_DETECTION {
     return predictions
   }
 
+  GET_LABELS() {
+    return [
+      'age',
+      'neutral',
+      'happy',
+      'sad',
+      'angry',
+      'fearful',
+      'disgusted',
+      'surprised'
+    ]
+  }
+
   NORMALIZE_PREDICTIONS(predictions = [], labels) {
-    let vectorizedPredictions = []
-    for (const pred of predictions) {
-      vectorizedPredictions.push(pred.age)
+    if (!Array.isArray(labels) || labels.length === 0) return [];
+    const scores = new Array(labels.length).fill(0);
+    if (!Array.isArray(predictions) || predictions.length === 0) return scores;
+    
+    // Tomamos la primera cara detectada
+    const pred = predictions[0];
+    if (!pred) return scores;
+    
+    for (let i = 0; i < labels.length; i++) {
+      const label = labels[i];
+      if (label === 'age') {
+        scores[i] = pred.age || 0;
+      } else if (pred.expressions && typeof pred.expressions[label] === 'number') {
+        scores[i] = pred.expressions[label];
+      }
     }
-    return vectorizedPredictions
+    return scores;
   }
 
   /**

@@ -108,6 +108,7 @@
     "@types/css-modules": "^1.0.5",
     "@types/fingerpose": "^0.1.1",
     "@types/jest": "^29.5.13",
+    "@types/react": "^19.2.14",
     "@types/react-plotly.js": "^2.6.3",
     "@types/react-router-dom": "^5.3.3",
     "conventional-changelog-cli": "^5.0.0",

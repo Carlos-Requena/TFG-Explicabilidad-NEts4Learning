@@ -9,7 +9,8 @@ export default function ModelReviewImageClassificationMNIST (props) {
     iModelRef,
     iModelRef_model,
     iChartRef_image,
-    setBarDataImage
+    setBarDataImage,
+    onImageDataReady
   } = props
 
   const handleCanvasDraw_Clear = async () => {
@@ -25,6 +26,10 @@ export default function ModelReviewImageClassificationMNIST (props) {
     canvas_ctx.drawImage(draw_canvas, 10, 10, 28, 28)
     const imageData = canvas_ctx.getImageData(10, 10, 28, 28)
     const { predictions } = await iModelRef.current.CLASSIFY(iModelRef_model.current, imageData)
+
+    if (typeof onImageDataReady === 'function') {
+      onImageDataReady(imageData)
+    }
 
     updatePredictionMNIST(predictions)
   }

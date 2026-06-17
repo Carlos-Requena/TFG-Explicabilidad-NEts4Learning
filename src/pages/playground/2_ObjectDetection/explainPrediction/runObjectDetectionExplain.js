@@ -23,7 +23,13 @@ async function getFaceMeshInstance() {
 
 const unique = (arr) => Array.from(new Set(arr))
 
-const getSelectedLabelsFromDetections = (detections) => {
+const getSelectedLabelsFromDetections = (detections, model) => {
+  // Si el modelo tiene GET_LABELS, usarlo (para FACE_API)
+  if (model && typeof model.GET_LABELS === 'function') {
+    return model.GET_LABELS();
+  }
+  
+  // Otherwise, extract unique class names from detections (para COCO-SSD, etc.)
   if (!Array.isArray(detections)) return []
   return unique(
     detections
@@ -48,10 +54,13 @@ const buildZeroBackground = (numSegments) =>
  *   nSamples: number,
  *   flipHorizontal: boolean,
  *   maskValue?: number,
+ *   blur?: boolean,
+ *   blurKernelSize?: number,
+ *   blurPasses?: number,
  * }} params
  */
 export async function runObjectDetectionExplain(params) {
-  const { model, imageData, gridSide, nSamples, flipHorizontal, maskValue } = params
+  const { model, imageData, gridSide, nSamples, flipHorizontal, maskValue, blur, blurKernelSize, blurPasses } = params
   if (!model) throw new Error('runObjectDetectionExplain: model is required')
   if (!imageData) throw new Error('runObjectDetectionExplain: imageData is required')
   if (!Number.isFinite(gridSide) || gridSide <= 0) throw new Error('gridSide must be > 0')
@@ -71,7 +80,7 @@ export async function runObjectDetectionExplain(params) {
       flipHorizontal,
       staticImageMode: Boolean(model.faces),
     })
-    const selectedLabels = getSelectedLabelsFromDetections(baseDetections)
+    const selectedLabels = getSelectedLabelsFromDetections(baseDetections, model)
 
     // Comprobamos si el modelo es facial o no
     if (model.faces) {
@@ -82,7 +91,7 @@ export async function runObjectDetectionExplain(params) {
       })
 
       const face = meshDetections?.[0]
-      const faceSeg = getFaceSegmentMap(face.keypoints, imageData.width, imageData.height)
+      const faceSeg = getFaceSegmentMap(face.keypoints, imageData.width, imageData.height, flipHorizontal)
       ;({ mapArray, numSegments } = faceSeg)
 
       // FALLBACK
@@ -119,6 +128,9 @@ export async function runObjectDetectionExplain(params) {
         flipHorizontal,
         staticImageMode: Boolean(model.faces),
         ...(maskValue === undefined ? null : { maskValue }),
+        ...(blur === undefined ? null : { blur }),
+        ...(blurKernelSize === undefined ? null : { blurKernelSize }),
+        ...(blurPasses === undefined ? null : { blurPasses }),
       }
     )
 

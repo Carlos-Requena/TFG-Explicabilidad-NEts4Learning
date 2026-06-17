@@ -4,6 +4,7 @@ import { KernelSHAP } from 'webshap'
 import { objectDetectionWrapper } from '@/core/explainability/ObjectDetectionWrapper'
 import { createImageClassificationAdapter } from '@/core/explainability/adapters/createImageClassificationAdapter'
 import { computeSLICzeroMap } from '@/utils/slic0'
+
 const unique = (arr) => Array.from(new Set(arr))
 
 const getSelectedLabelsFromClassification = (predictions) => {
@@ -41,10 +42,13 @@ const buildZeroBackground = (numSegments) =>
  *   gridSide: number,
  *   nSamples: number,
  *   maskValue?: number,
+ *   blur?: boolean,
+ *   blurKernelSize?: number,
+ *   blurPasses?: number,
  * }} params
  */
 export async function runImageClassificationExplain(params) {
-  const { iModel, modelInstance, imageData, gridSide, nSamples, maskValue } = params
+  const { iModel, modelInstance, imageData, gridSide, nSamples, maskValue, blur } = params
   if (!iModel) throw new Error('runImageClassificationExplain: iModel is required')
   if (!modelInstance) throw new Error('runImageClassificationExplain: modelInstance is required')
   if (!imageData) throw new Error('runImageClassificationExplain: imageData is required')
@@ -92,11 +96,17 @@ export async function runImageClassificationExplain(params) {
       selectedLabels,
       {
         ...(maskValue === undefined ? null : { maskValue }),
+        blur: Boolean(blur),
       }
     )
 
     const explainer = new KernelSHAP(predictor, backgroundData, 0.2022)
     const shapValues = await explainer.explainOneInstance(inputVector, nSamples)
+
+    /*
+    iModel.GET_ACTIVATIONS_IMAGE(modelInstance,imageData)
+    iModel.GET_EMBEDDING_IMAGE(modelInstance,imageData)
+    */
 
     return {
       shapValues,
@@ -111,7 +121,68 @@ export async function runImageClassificationExplain(params) {
   }
 }
 
-// Compatibilidad: este archivo se llamaba runObjectDetectionExplain, pero aquí se usa para ImageClassification.
+// Compatibilidad histórica: el archivo se llama runObjectDetectionExplain, pero aquí se usa para ImageClassification.
 export async function runObjectDetectionExplain(params) {
   return runImageClassificationExplain(params)
+}
+
+/**
+ * Ejecuta el flujo de explicabilidad para el modelo de LRP (Layer-wise Relevance Propagation)
+ * 
+ * @param {{
+ *   iModel: any,
+ *   modelInstance: any,
+ *   imageData: ImageData,
+ * }} params
+ */
+export async function runImageClassificationExplainLrp(params) {
+  const { iModel, modelInstance, imageData } = params
+  if (!iModel) throw new Error('runImageClassificationExplainLrp: iModel is required')
+  if (!modelInstance) throw new Error('runImageClassificationExplainLrp: modelInstance is required')
+  if (!imageData) throw new Error('runImageClassificationExplainLrp: imageData is required')
+
+  if (typeof iModel.GET_ACTIVATIONS_IMAGE !== 'function') {
+    throw new Error('runImageClassificationExplainLrp: iModel.GET_ACTIVATIONS_IMAGE is required')
+  }
+  if (typeof iModel.CALCULATE_LRP_PROPAGATION !== 'function') {
+    throw new Error('runImageClassificationExplainLrp: iModel.CALCULATE_LRP_PROPAGATION is required')
+  }
+
+  const layerNames = modelInstance.layers
+    .filter((layer) => layer?.getClassName?.() !== 'InputLayer')
+    .map((layer) => layer.name)
+
+  const activations = await iModel.GET_ACTIVATIONS_IMAGE(modelInstance, imageData, {
+    layerNames,
+    includeInput: true,
+  })
+
+  const relevanceTensor = await iModel.CALCULATE_LRP_PROPAGATION(
+    modelInstance,
+    imageData,
+    activations,
+    {
+      rule: 'epsilon',
+      epsilon: 1e-9,
+      winnerTakesAll: true,
+    }
+  )
+
+  try {
+    const relevanceValues = Array.from(relevanceTensor.dataSync())
+    const { index: predictedIndex } = await iModel.CLASSIFY_IMAGE(modelInstance, imageData)
+
+    return {
+      shapValues: [relevanceValues],
+      debugImages: [],
+      selectedLabels: [predictedIndex],
+      segmentationMapArray: null,
+      numSegments: relevanceValues.length,
+      backgroundData: [],
+      relevanceShape: Array.from(relevanceTensor.shape),
+    }
+  } finally {
+    if (relevanceTensor?.dispose) relevanceTensor.dispose()
+  }
+
 }

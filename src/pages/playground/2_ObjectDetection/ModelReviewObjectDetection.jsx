@@ -42,6 +42,7 @@ export default function ModelReviewObjectDetection({ dataset }) {
   const explainer= useRef(null)
   const imgData = useRef(null)
   const segmentationMap = useRef(null)
+  const [explainLabels, setExplainLabels] = useState([])
 
   // Variables Debug
   const [galleryImages, setGalleryImages] = useState([]) 
@@ -50,6 +51,9 @@ export default function ModelReviewObjectDetection({ dataset }) {
   const [gridSide, setGridSide] = useState(6)
   const [nSamples, setNSamples] = useState(75)
   const [mask, setMask] = useState(0)
+  const [blurEnabled, setBlurEnabled] = useState(false)
+  const [blurKernelSize, setBlurKernelSize] = useState(15)
+  const [blurPasses, setBlurPasses] = useState(2)
   const total_features = useRef(gridSide * gridSide)
 
   const [isLoading, setLoading] = useState(true)
@@ -387,6 +391,7 @@ export default function ModelReviewObjectDetection({ dataset }) {
           const {
             shapValues,
             debugImages,
+            selectedLabels,
             segmentationMapArray,
             backgroundData: computedBackground,
           } = await runObjectDetectionExplain({
@@ -396,11 +401,16 @@ export default function ModelReviewObjectDetection({ dataset }) {
             nSamples,
             flipHorizontal,
             maskValue: mask,
+            // blur options
+            blur: blurEnabled,
+            blurKernelSize: blurKernelSize,
+            blurPasses: blurPasses,
           })
 
           segmentationMap.current = segmentationMapArray
           backgroundData.current = computedBackground
 
+          setExplainLabels(selectedLabels || [])
           setGalleryImages(debugImages)
           setShowExplain(true)
           setExplanationData(shapValues)
@@ -781,13 +791,13 @@ export default function ModelReviewObjectDetection({ dataset }) {
             <Col xs={12}>
               <Card className={'mt-3'}>
                 <Card.Header className="d-flex justify-content-between align-items-center">
-                  <h3>Explicabilidad (SHAP)</h3>
+                  <h3>{t('ui.explain.title')}</h3>
                 </Card.Header>
                 <Card.Body>
                   {/* GALERÍA */}
                   {showExplain && galleryImages.length > 0 && (
                     <div className="mb-4">
-                        <h5>Muestras de Perturbación:</h5>
+                        <h5>{t('ui.explain.perturbationSamples')}</h5>
                         {/* CORRECCIÓN CSS: flex-wrap para que no se salga si hay muchas, o mantener scroll */}
                         <div style={{
                             display:'flex', 
@@ -816,10 +826,22 @@ export default function ModelReviewObjectDetection({ dataset }) {
                   {/* HEATMAPS */}
                   {showExplain && explanationData && (
                     <Row>
-                       {explanationData.map((shapVals, idx) => (
+                       {explanationData.map((shapVals, idx) => {
+                         const labelName = (explainLabels && explainLabels.length > idx) 
+                           ? explainLabels[idx] 
+                           : `Class ${idx + 1}`;
+                         
+                         // Para FACE_API, traducir los nombres de las labels
+                         let displayLabel = labelName;
+                         const model = iModelRef.current;
+                         if (model && 'i18n_face_api' in model && model.i18n_face_api && model.i18n_face_api[labelName]) {
+                           displayLabel = model.i18n_face_api[labelName];
+                         }
+                         
+                         return (
                            <Col key={idx} md={6} lg={4} className="mb-3">
                                <div style={{border:'1px solid #eee', padding:'10px', borderRadius:'8px', textAlign:'center'}}>
-                                   <h6 style={{fontWeight:'bold', marginBottom:'10px'}}>Clase #{idx + 1}</h6>
+                                   <h6 style={{fontWeight:'bold', marginBottom:'10px'}}>{displayLabel}</h6>
                                    <ShapHeatmap 
                                       imageSrc={canvasImage_ref.current.toDataURL()}
                                       shapValues={shapVals}
@@ -827,37 +849,71 @@ export default function ModelReviewObjectDetection({ dataset }) {
                                    />
                                </div>
                            </Col>
-                       ))}
+                         );
+                       })}
                     </Row>
                   )}
                   {/* Controles de explicabilidad (grid y samples) y botón debajo */}
                   <div className="mt-3">
                     <Form>
                       <Form.Group className="mb-2" controlId="formGridSideBottom">
-                        <Form.Label>Grid Side (features per side)</Form.Label>
+                        <Form.Label>{t('ui.explain.gridSide')}</Form.Label>
                         <Form.Control type="number" min={2} max={32} value={gridSide} onChange={e => setGridSide(Number(e.target.value))} />
                       </Form.Group>
                       <Form.Group className="mb-2" controlId="formNSamplesBottom">
-                        <Form.Label>nSamples (SHAP)</Form.Label>
+                        <Form.Label>{t('ui.explain.nSamples')}</Form.Label>
                         <Form.Control type="number" min={1} max={500} value={nSamples} onChange={e => setNSamples(Number(e.target.value))} />
                       </Form.Group>
                       <Form.Group className="mb-2" controlId="formMaskBottom">
-                        <Form.Label>Máscara (SHAP)</Form.Label>
+                        <Form.Label>{t('ui.explain.mask')}</Form.Label>
                         <Form.Control type="number" min={1} max={500} value={mask} onChange={e => setMask(Number(e.target.value))} />
                       </Form.Group>
+                      <Form.Group className="mb-2" controlId="formBlurEnable">
+                        <Form.Check
+                          type="checkbox"
+                          label={t('ui.blur.enable')}
+                          checked={blurEnabled}
+                          onChange={(e) => setBlurEnabled(e.target.checked)}
+                        />
+                      </Form.Group>
+                      {blurEnabled && (
+                        <>
+                          <Form.Group className="mb-2" controlId="formBlurKernel">
+                            <Form.Label>{t('ui.blur.kernelSize')}</Form.Label>
+                            <Form.Control
+                              type="number"
+                              min={3}
+                              max={101}
+                              step={2}
+                              value={blurKernelSize}
+                              onChange={(e) => setBlurKernelSize(Number(e.target.value))}
+                            />
+                          </Form.Group>
+                          <Form.Group className="mb-2" controlId="formBlurPasses">
+                            <Form.Label>{t('ui.blur.passes')}</Form.Label>
+                            <Form.Control
+                              type="number"
+                              min={1}
+                              max={6}
+                              value={blurPasses}
+                              onChange={(e) => setBlurPasses(Number(e.target.value))}
+                            />
+                          </Form.Group>
+                        </>
+                      )}
                       <Button 
                         type="button"
                         variant={'outline-info'}
                         onClick={handleRequest_ExplainPrediction}
                         disabled={isCalculo || !processImage.isProcessed}
                       >
-                        {isCalculo ? 'Calculando...' : 'Explicar Predicción'}
+                        {isCalculo ? t('ui.explain.calculating') : t('ui.explain.explainPrediction')}
                       </Button>
                     </Form>
                   </div>
-                  {showExplain && (!explanationData || explanationData.length === 0) && !isCalculo && (
-                      <p className="text-center text-muted">No hay datos de explicación disponibles.</p>
-                  )}
+                    {showExplain && (!explanationData || explanationData.length === 0) && !isCalculo && (
+                      <p className="text-center text-muted">{t('ui.explain.noData')}</p>
+                    )}
                 </Card.Body>
               </Card>
             </Col>

@@ -19,7 +19,7 @@ export default function CustomCanvasDrawer (props) {
       canvas.width = 600
       canvas.height = 600
       canvas.style.width = '200px'
-      canvas.style.heigt = '200px'
+      canvas.style.height = '200px'
 
       const context = canvas.getContext('2d')
       context.scale(3, 3)

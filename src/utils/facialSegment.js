@@ -1,4 +1,4 @@
-export function getFaceSegmentMap(prediccion, width, height) {
+export function getFaceSegmentMap(prediccion, width, height, flipHorizontal = false) {
     // 1. Sanitización de dimensiones
     const safeWidth = Number.isFinite(width) ? Math.max(0, Math.floor(width)) : 0;
     const safeHeight = Number.isFinite(height) ? Math.max(0, Math.floor(height)) : 0;
@@ -48,13 +48,17 @@ export function getFaceSegmentMap(prediccion, width, height) {
 
             ctx.beginPath();
             const p0 = prediccion[firstIndex];
-            ctx.moveTo(p0.x, p0.y);
+            // Si flipHorizontal, invertir coordenada X
+            const x0 = flipHorizontal ? safeWidth - p0.x : p0.x;
+            ctx.moveTo(x0, p0.y);
 
             for (let i = 1; i < layer.indices.length; i++) {
                 const idx = layer.indices[i];
                 const p = prediccion[idx];
                 if (p) {
-                    ctx.lineTo(p.x, p.y);
+                    // Si flipHorizontal, invertir coordenada X
+                    const x = flipHorizontal ? safeWidth - p.x : p.x;
+                    ctx.lineTo(x, p.y);
                 }
             }
             ctx.closePath();

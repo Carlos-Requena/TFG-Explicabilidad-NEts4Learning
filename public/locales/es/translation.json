@@ -97,9 +97,6 @@
       "mae": {
         "title": "Mean Absolute Error (MAE)"
       },
-      "mse": {
-        "title": "Mean Squared Error (MSE)"
-      },
       "rmse": {
         "title": "Root Mean Square Error (RMSE)"
       },
@@ -317,6 +314,27 @@
     "json": "Añada el fichero JSON",
     "csv": "Añada el fichero CSV",
     "csv-json": "Introduce el fichero de datos plantilla.json"
+  },
+  "ui": {
+    "blur": {
+      "enable": "Aplicar blur a regiones enmascaradas",
+      "kernelSize": "Tamaño kernel blur (impar)",
+      "passes": "Veces de blur (passes)"
+    }
+    ,
+    "explain": {
+      "title": "Explicabilidad (SHAP)",
+      "perturbationSamples": "Muestras de Perturbación:",
+      "gridSide": "Grid Side (features per side)",
+      "nSamples": "nSamples (SHAP)",
+      "mask": "Máscara (SHAP)",
+      "maskRange": "Máscara (0..1)",
+      "calculating": "Calculando...",
+      "explainPrediction": "Explicar Predicción",
+      "hideExplanation": "Ocultar explicación",
+      "noData": "No hay datos de explicación disponibles.",
+      "class": "Clase #{{index}}"
+    }
   },
   "custom-canvas-drawer": {
     "validate": "Validar",

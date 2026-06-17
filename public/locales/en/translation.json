@@ -121,7 +121,21 @@
         "title": "F1"
       },
       "sensitivity": {
-        "title": "Sensitivity"
+          "passes": "Blur passes"
+        },
+        "explain": {
+          "title": "Explainability (SHAP)",
+          "perturbationSamples": "Perturbation samples:",
+          "gridSide": "Grid Side (features per side)",
+          "nSamples": "nSamples (SHAP)",
+          "mask": "Mask (SHAP)",
+          "maskRange": "Mask (0..1)",
+          "calculating": "Calculating...",
+          "explainPrediction": "Explain Prediction",
+          "hideExplanation": "Hide explanation",
+          "noData": "No explanation data available.",
+          "class": "Class #{{index}}"
+        }
       },
       "acc-prec-recall-f1": {
         "title": "Accuracy, Precision, Recall, F1"
@@ -317,6 +331,13 @@
     "json": "Add the JSON file",
     "csv": "Add the CSV file",
     "csv-json": "Enter the template data file.json"
+  },
+  "ui": {
+    "blur": {
+      "enable": "Apply blur to masked regions",
+      "kernelSize": "Blur kernel size (odd)",
+      "passes": "Blur passes"
+    }
   },
   "custom-canvas-drawer": {
     "validate": "Validate",

@@ -20,7 +20,8 @@ const normalizeBlurPasses = (passes) => {
   return Math.max(1, Math.min(6, p))
 }
 
-const cosineSimilarity = (a, b) => {
+const cosineSimilarity = (a, b) => { // En caso de comparación de actiaciones internas o vectores de características. 
+// No se usa en el wrapper actual
     if (!a || !b) return 0;
     let dot = 0, mA = 0, mB = 0;
     for (let i = 0; i < a.length; i++) {
@@ -54,8 +55,8 @@ export const objectDetectionWrapper = (modelRef, imagenOriginal, segmentationTen
         }
         const maskMul = 1 - maskValue;
 
-        //const shouldBlurMaskedRegions = Boolean(modelRef?.faces)
-        const shouldBlurMaskedRegions = false
+        // Si se solicita explícitamente en options o el modelRef indica caras, activamos blur.
+        const shouldBlurMaskedRegions = Boolean(options.blur)
         let blurredImgToTensor = null
 
         try {

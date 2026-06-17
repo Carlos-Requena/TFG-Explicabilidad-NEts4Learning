@@ -473,7 +473,6 @@ export class SLIC extends BaseSegmentation {
 }
 
 
-// --- TU FUNCIÓN WRAPPER UNIFICADA ---
 export const computeSLICMap = (imageData, numSegmentsApprox = 15) => {
     
     // Validar entrada

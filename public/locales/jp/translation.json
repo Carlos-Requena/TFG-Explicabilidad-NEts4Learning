@@ -318,6 +318,26 @@
     "csv": "CSVファイルを追加",
     "csv-json": "テンプレートデータファイル template.json を入力"
   },
+  "ui": {
+    "blur": {
+      "enable": "マスクされた領域にブラーを適用",
+      "kernelSize": "ブラーカーネルサイズ（奇数）",
+      "passes": "ブラーの回数"
+    },
+    "explain": {
+      "title": "説明可能性 (SHAP)",
+      "perturbationSamples": "摂動サンプル:",
+      "gridSide": "Grid Side (features per side)",
+      "nSamples": "nSamples (SHAP)",
+      "mask": "マスク (SHAP)",
+      "maskRange": "マスク (0..1)",
+      "calculating": "計算中...",
+      "explainPrediction": "予測を説明",
+      "hideExplanation": "説明を非表示",
+      "noData": "説明データはありません。",
+      "class": "クラス #{{index}}"
+    }
+  },
   "custom-canvas-drawer": {
     "validate": "検証",
     "clear": "クリア"

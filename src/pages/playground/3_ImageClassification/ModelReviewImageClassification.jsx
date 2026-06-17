@@ -10,7 +10,7 @@ import ReactGA from 'react-ga4'
 
 import alertHelper from '@utils/alertHelper'
 import ShapHeatmap from '@/core/explainability/ImageHeatMapChart'
-import { runImageClassificationExplain } from '@pages/playground/3_ImageClassification/explainPrediction/runObjectDetectionExplain'
+import { runImageClassificationExplain, runImageClassificationExplainLrp } from '@pages/playground/3_ImageClassification/explainPrediction/runObjectDetectionExplain'
 
 import { UPLOAD, MODEL_IMAGE_MNIST } from '@/DATA_MODEL'
 import I_MODEL_IMAGE_CLASSIFICATION from './models/_model'
@@ -61,6 +61,10 @@ export default function ModelReviewImageClassification ({ dataset }) {
   const [gridSide, setGridSide] = useState(6)
   const [nSamples, setNSamples] = useState(75)
   const [maskValue, setMaskValue] = useState(0.2)
+  const [explainMethod, setExplainMethod] = useState('shap')
+  const [blurEnabled, setBlurEnabled] = useState(false)
+  const [blurKernelSize, setBlurKernelSize] = useState(15)
+  const [blurPasses, setBlurPasses] = useState(2)
   const total_features = useRef(gridSide * gridSide)
 
   /**
@@ -156,6 +160,12 @@ export default function ModelReviewImageClassification ({ dataset }) {
 
   const isMNIST = () => {
     return dataset === MODEL_IMAGE_MNIST.KEY
+  }
+
+  const canUseLrp = () => {
+    const modelApi = /** @type {*} */ (iModelRef.current)
+    return typeof modelApi?.GET_ACTIVATIONS_IMAGE === 'function' &&
+      typeof modelApi?.CALCULATE_LRP_PROPAGATION === 'function'
   }
 
   const handleClick_ImageByExamples_OpenDrawAndPredict = (image_src) => {
@@ -259,19 +269,32 @@ export default function ModelReviewImageClassification ({ dataset }) {
         return
       }
 
+      const useLrp = explainMethod === 'lrp'
+      if (useLrp && !canUseLrp()) {
+        await alertHelper.alertError('LRP no está disponible para este modelo')
+        setIsCalculo(false)
+        return
+      }
+
+      const explainRunner = useLrp ? runImageClassificationExplainLrp : runImageClassificationExplain
+
       const {
         shapValues,
         debugImages,
         selectedLabels,
         segmentationMapArray,
         backgroundData: computedBackground,
-      } = await runImageClassificationExplain({
+      } = await explainRunner({
         iModel: iModelRef.current,
         modelInstance: iModelRef_model.current,
         imageData: imgData.current,
         gridSide,
         nSamples,
         maskValue,
+        // blur options passed to ObjectDetectionWrapper
+        blur: blurEnabled,
+        blurKernelSize: blurKernelSize,
+        blurPasses: blurPasses,
       })
 
       segmentationMap.current = segmentationMapArray
@@ -379,6 +402,15 @@ export default function ModelReviewImageClassification ({ dataset }) {
                                                    iModelRef_model={iModelRef_model}
                                                    iChartRef_image={iChartRef_image}
                                                    setBarDataImage={setBarDataImage}
+                                                   onImageDataReady={(imageData) => {
+                                                     imgData.current = imageData
+                                                     segmentationMap.current = null
+                                                     backgroundData.current = []
+                                                     setExplainLabels([])
+                                                     setGalleryImages([])
+                                                     setExplanationData(null)
+                                                     setShowExplain(false)
+                                                   }}
               />
             </>}
           </Row>
@@ -430,12 +462,32 @@ export default function ModelReviewImageClassification ({ dataset }) {
           <Col xs={12}>
             <Card className={'mt-3'}>
               <Card.Header className="d-flex justify-content-between align-items-center">
-                <h3>Explicabilidad (SHAP)</h3>
+                <h3>{t('ui.explain.title')}</h3>
+                <div className="d-flex align-items-center gap-2">
+                  <span style={{ fontSize: '0.9rem' }}>Metodo:</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={explainMethod === 'shap' ? 'primary' : 'outline-primary'}
+                    onClick={() => setExplainMethod('shap')}
+                  >
+                    SHAP
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={explainMethod === 'lrp' ? 'primary' : 'outline-primary'}
+                    onClick={() => setExplainMethod('lrp')}
+                    disabled={!canUseLrp()}
+                  >
+                    LRP
+                  </Button>
+                </div>
               </Card.Header>
               <Card.Body>
                 {showExplain && galleryImages.length > 0 && (
                   <div className="mb-4">
-                    <h5>Muestras de Perturbación:</h5>
+                    <h5>{t('ui.explain.perturbationSamples')}</h5>
                     <div
                       style={{
                         display: 'flex',
@@ -473,7 +525,7 @@ export default function ModelReviewImageClassification ({ dataset }) {
                       return (
                         <Col key={idx} md={6} lg={4} className="mb-3">
                           <div style={{ border: '1px solid #eee', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
-                            <h6 style={{ fontWeight: 'bold', marginBottom: '10px' }}>Clase: {String(label)}</h6>
+                            <h6 style={{ fontWeight: 'bold', marginBottom: '10px' }}>{t('ui.explain.class', { index: String(label) })}</h6>
                             <ShapHeatmap
                               imageSrc={originalImage_ref.current ? originalImage_ref.current.toDataURL() : null}
                               shapValues={shapVals}
@@ -488,8 +540,10 @@ export default function ModelReviewImageClassification ({ dataset }) {
 
                 <div className="mt-3">
                   <Form>
+                    {explainMethod === 'shap' && (
+                      <>
                     <Form.Group className="mb-2" controlId="formGridSideBottomIC">
-                      <Form.Label>Grid Side (features per side)</Form.Label>
+                      <Form.Label>{t('ui.explain.gridSide')}</Form.Label>
                       <Form.Control
                         type="number"
                         min={2}
@@ -499,7 +553,7 @@ export default function ModelReviewImageClassification ({ dataset }) {
                       />
                     </Form.Group>
                     <Form.Group className="mb-2" controlId="formNSamplesBottomIC">
-                      <Form.Label>nSamples (SHAP)</Form.Label>
+                      <Form.Label>{t('ui.explain.nSamples')}</Form.Label>
                       <Form.Control
                         type="number"
                         min={1}
@@ -509,7 +563,7 @@ export default function ModelReviewImageClassification ({ dataset }) {
                       />
                     </Form.Group>
                     <Form.Group className="mb-2" controlId="formMaskBottomIC">
-                      <Form.Label>Máscara (0..1)</Form.Label>
+                      <Form.Label>{t('ui.explain.maskRange')}</Form.Label>
                       <Form.Control
                         type="number"
                         min={0}
@@ -519,19 +573,55 @@ export default function ModelReviewImageClassification ({ dataset }) {
                         onChange={(e) => setMaskValue(Number(e.target.value))}
                       />
                     </Form.Group>
+                    <Form.Group className="mb-2" controlId="formBlurEnable">
+                      <Form.Check
+                        type="checkbox"
+                        label={t('ui.blur.enable')}
+                        checked={blurEnabled}
+                        onChange={(e) => setBlurEnabled(e.target.checked)}
+                      />
+                    </Form.Group>
+                    {blurEnabled && (
+                      <>
+                        <Form.Group className="mb-2" controlId="formBlurKernel">
+                          <Form.Label>{t('ui.blur.kernelSize')}</Form.Label>
+                          <Form.Control
+                            type="number"
+                            min={3}
+                            max={101}
+                            step={2}
+                            value={blurKernelSize}
+                            onChange={(e) => setBlurKernelSize(Number(e.target.value))}
+                          />
+                        </Form.Group>
+                        <Form.Group className="mb-2" controlId="formBlurPasses">
+                          <Form.Label>{t('ui.blur.passes')}</Form.Label>
+                          <Form.Control
+                            type="number"
+                            min={1}
+                            max={6}
+                            value={blurPasses}
+                            onChange={(e) => setBlurPasses(Number(e.target.value))}
+                          />
+                        </Form.Group>
+                      </>
+                    )}
+                      </>
+                    )}
+
                     <Button
                       type="button"
                       variant={'outline-info'}
                       onClick={handleRequest_ExplainPrediction}
                       disabled={isCalculo || !imgData.current}
                     >
-                      {isCalculo ? 'Calculando...' : (showExplain ? 'Ocultar explicación' : 'Explicar Predicción')}
+                      {isCalculo ? t('ui.explain.calculating') : (showExplain ? t('ui.explain.hideExplanation') : t('ui.explain.explainPrediction'))}
                     </Button>
                   </Form>
                 </div>
 
                 {showExplain && (!explanationData || explanationData.length === 0) && !isCalculo && (
-                  <p className="text-center text-muted">No hay datos de explicación disponibles.</p>
+                  <p className="text-center text-muted">{t('ui.explain.noData')}</p>
                 )}
               </Card.Body>
             </Card>
