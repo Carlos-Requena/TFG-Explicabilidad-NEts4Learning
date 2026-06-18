@@ -4,7 +4,7 @@ import { Card } from 'react-bootstrap';
 interface ShapHeatmapProps {
   imageSrc?: ImageData | string;
   shapValues?: number[] | number[][];
-  segmentationMap?: Int32Array | number[] | null;
+  segmentationMap?: Int32Array | Uint8Array | number[] | null;
   opacity?: number;
   title?: string;
 }
@@ -38,7 +38,7 @@ export default function ShapHeatmap(props: ShapHeatmapProps) {
       const totalPixels = width * height;
 
       // Calculamos/verificamos el mapa aquí dentro
-      let activeMap: Int32Array | number[] | null = segmentationMap;
+      let activeMap: Int32Array | Uint8Array | number[] | null = segmentationMap;
 
       // Si no hay mapa o el tamaño no coincide, regeneramos el GRID
       if (!activeMap || activeMap.length !== totalPixels) {
@@ -61,7 +61,7 @@ export default function ShapHeatmap(props: ShapHeatmapProps) {
         }
       }
 
-      const map = activeMap as Int32Array | number[];
+      const map = activeMap as Int32Array | Uint8Array | number[];
 
       // Pintamos usando el mapa correcto
       const imgData = ctx.getImageData(0, 0, width, height);

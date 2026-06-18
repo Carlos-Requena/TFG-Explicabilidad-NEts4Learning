@@ -1,4 +1,16 @@
 {
+  "ui": {
+    "explain": {
+      "title": "Explainability (SHAP)",
+      "perturbationSamples": "Perturbation samples:",
+      "gridSide": "Grid Side (features per side)",
+      "nSamples": "nSamples (SHAP)",
+      "calculate": "Explain prediction",
+      "hide": "Hide explanation",
+      "calculating": "Calculating...",
+      "class": "Class #{{index}}"
+    }
+  },
   "welcome": "Welcome to Nets4Learning",
   "welcome-2": "To continue select one of these tasks",
   "list_map": "<1></1>",

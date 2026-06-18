@@ -16,6 +16,8 @@ import { MAP_OD_CLASSES } from '@pages/playground/2_ObjectDetection/models'
 import alertHelper from '@utils/alertHelper'
 import I_MODEL_OBJECT_DETECTION from './models/_model'
 import { delay } from '@utils/utils'
+import ShapHeatmap from '@core/explainability/ImageHeatMapChart'
+import { runObjectDetectionExplain } from './explainPrediction/runObjectDetectionExplain'
 
 const WebcamComponent = (Webcam as unknown) as React.FC<any>;
 
@@ -89,6 +91,17 @@ export default function ModelReviewObjectDetection(props: ModelReviewObjectDetec
    * @type {ReturnType<typeof useRef<HTMLCanvasElement>>}
    */
   const processCanvas_ref = useRef<HTMLCanvasElement>(null);
+
+  // === Explicabilidad (SHAP) ===
+  const imgData_ref = useRef<ImageData | null>(null)
+  const segmentationMap_ref = useRef<Int32Array | Uint8Array | number[] | null>(null)
+  const [showExplain, setShowExplain] = useState(false)
+  const [isCalculo, setIsCalculo] = useState(false)
+  const [gridSide, setGridSide] = useState(6)
+  const [nSamples, setNSamples] = useState(75)
+  const [explainLabels, setExplainLabels] = useState<Array<string | number>>([])
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [explanationData, setExplanationData] = useState<number[][] | null>(null)
 
   useEffect(() => {
     ReactGA.send({ hitType: 'pageview', page: `/ModelReviewObjectDetection/${dataset}`, title: dataset })
@@ -430,6 +443,14 @@ export default function ModelReviewObjectDetection(props: ModelReviewObjectDetec
         // FIX: Changed second 'width' to 'height'
         const imgData = originalCtx.getImageData(0, 0, width, height);
 
+        // Guardamos la imagen para la explicabilidad y reseteamos resultados previos
+        imgData_ref.current = imgData
+        segmentationMap_ref.current = null
+        setExplainLabels([])
+        setGalleryImages([])
+        setExplanationData(null)
+        setShowExplain(false)
+
         // Draw result image
         resultCtx.drawImage(img, 0, 0, width, height);
 
@@ -472,6 +493,47 @@ export default function ModelReviewObjectDetection(props: ModelReviewObjectDetec
       )
     }
     return isLoading || isCameraEnable || isWebView
+  }
+
+  const handleRequest_ExplainPrediction = async (e: { preventDefault: () => void }) => {
+    e.preventDefault()
+
+    if (showExplain) {
+      setShowExplain(false)
+      return
+    }
+
+    setIsCalculo(true)
+
+    try {
+      const currentImageData = imgData_ref.current
+      if (!currentImageData) {
+        await alertHelper.alertInfo(t('info.insert-input'))
+        setIsCalculo(false)
+        return
+      }
+
+      const flipHorizontal = !iModel_ref.current.mirror
+
+      const result = await runObjectDetectionExplain({
+        model: iModel_ref.current,
+        imageData: currentImageData,
+        gridSide,
+        nSamples,
+        flipHorizontal,
+      })
+
+      segmentationMap_ref.current = result.segmentationMapArray
+      setExplainLabels(result.selectedLabels)
+      setGalleryImages(result.debugImages)
+      setExplanationData(result.shapValues)
+      setShowExplain(true)
+      setIsCalculo(false)
+    } catch (error) {
+      console.error('Error calculating explainability', { error })
+      await alertHelper.alertError(t('Error calculating explainability'))
+      setIsCalculo(false)
+    }
   }
 
   if (VERBOSE) console.debug('render ModelReviewObjectDetection')
@@ -758,6 +820,84 @@ export default function ModelReviewObjectDetection(props: ModelReviewObjectDetec
                       </Col>
                     </Row>
                   </Container>
+                </Card.Body>
+              </Card>
+
+              <Card className={'mt-3'} data-testid={'explainability-card'}>
+                <Card.Header>
+                  <h3>{t('ui.explain.title')}</h3>
+                </Card.Header>
+                <Card.Body>
+                  <Row className="mb-3">
+                    <Col xs={6}>
+                      <Form.Label>{t('ui.explain.gridSide')}</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min={2}
+                        max={32}
+                        value={gridSide}
+                        onChange={(ev) => setGridSide(Number(ev.target.value))}
+                      />
+                    </Col>
+                    <Col xs={6}>
+                      <Form.Label>{t('ui.explain.nSamples')}</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min={1}
+                        max={500}
+                        value={nSamples}
+                        onChange={(ev) => setNSamples(Number(ev.target.value))}
+                      />
+                    </Col>
+                  </Row>
+                  <Button
+                    variant="success"
+                    disabled={isCalculo}
+                    onClick={handleRequest_ExplainPrediction}
+                  >
+                    {isCalculo
+                      ? t('ui.explain.calculating')
+                      : showExplain
+                        ? t('ui.explain.hide')
+                        : t('ui.explain.calculate')}
+                  </Button>
+
+                  {showExplain && galleryImages.length > 0 && (
+                    <div className="mt-3">
+                      <h5>{t('ui.explain.perturbationSamples')}</h5>
+                      <div className="d-flex flex-wrap gap-2">
+                        {galleryImages.map((src, i) => (
+                          <img
+                            key={i}
+                            src={src}
+                            alt={`perturbation-${i}`}
+                            style={{ width: 80, height: 80, border: '1px solid #eee' }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {showExplain && explanationData && (
+                    <Row className="mt-3">
+                      {explanationData.map((shapVals, idx) => {
+                        const label =
+                          explainLabels.length > idx ? explainLabels[idx] : idx + 1
+                        return (
+                          <Col xs={12} md={6} key={idx} className="mb-3">
+                            <h6 style={{ fontWeight: 'bold' }}>
+                              {t('ui.explain.class', { index: String(label) })}
+                            </h6>
+                            <ShapHeatmap
+                              imageSrc={imgData_ref.current ?? undefined}
+                              shapValues={shapVals}
+                              segmentationMap={segmentationMap_ref.current}
+                            />
+                          </Col>
+                        )
+                      })}
+                    </Row>
+                  )}
                 </Card.Body>
               </Card>
             </Col>

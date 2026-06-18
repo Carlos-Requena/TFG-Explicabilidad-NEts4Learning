@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Button, Card, Col, Container, Modal, Row } from "react-bootstrap"
+import { Button, Card, Col, Container, Form, Modal, Row } from "react-bootstrap"
 import { useNavigate } from "react-router-dom"
 import * as _chartjs from "chart.js"
 import * as tfjs from "@tensorflow/tfjs"
@@ -21,6 +21,12 @@ import { MAP_IC_CLASSES } from "@pages/playground/3_ImageClassification/models"
 import { DEFAULT_BAR_DATA } from "@pages/playground/3_ImageClassification/CONSTANTS"
 import { UTILS_image } from "@pages/playground/3_ImageClassification/utils/utils"
 import type { BarOptions_t } from "@/types/types"
+
+import ShapHeatmap from "@core/explainability/ImageHeatMapChart"
+import {
+  runImageClassificationExplain,
+  runImageClassificationExplainLrp,
+} from "@pages/playground/3_ImageClassification/explainPrediction/runObjectDetectionExplain"
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
@@ -72,6 +78,18 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
 
   const [barDataImage, setBarDataImage] = useState(DEFAULT_BAR_DATA)
   const [barDataModal, setBarDataModal] = useState(DEFAULT_BAR_DATA)
+
+  // === Explicabilidad (SHAP / LRP) ===
+  const imgData = useRef<ImageData | null>(null)
+  const segmentationMap = useRef<Int32Array | number[] | null>(null)
+  const [showExplain, setShowExplain] = useState(false)
+  const [isCalculo, setIsCalculo] = useState(false)
+  const [explainMethod, setExplainMethod] = useState<"shap" | "lrp">("shap")
+  const [gridSide, setGridSide] = useState(6)
+  const [nSamples, setNSamples] = useState(75)
+  const [explainLabels, setExplainLabels] = useState<Array<string | number>>([])
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [explanationData, setExplanationData] = useState<number[][] | null>(null)
 
   /**
    * @type {*|BarOptions_t}
@@ -185,6 +203,15 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
       const imageData = await iModelRef.current.GET_IMAGE_DATA(canvas, canvas_modal_ctx)
       const { predictions } = await iModelRef.current.CLASSIFY_IMAGE(iModelRef_model.current, imageData)
       const barDataPrediction = await iModelRef.current.PREDICTION_FORMAT(predictions)
+
+      // Guardamos la imagen predicha para la explicabilidad y reseteamos resultados previos
+      imgData.current = imageData
+      segmentationMap.current = null
+      setExplainLabels([])
+      setGalleryImages([])
+      setExplanationData(null)
+      setShowExplain(false)
+
       setBarDataModal(barDataPrediction)
     }
   }
@@ -212,7 +239,80 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
       const imageData = await iModelRef.current.GET_IMAGE_DATA(canvas, canvas_ctx)
       const { predictions } = await iModelRef.current.CLASSIFY_IMAGE(iModelRef_model.current, imageData)
       const barDataPrediction = await iModelRef.current.PREDICTION_FORMAT(predictions)
+
+      // Guardamos la imagen predicha para la explicabilidad y reseteamos resultados previos
+      imgData.current = imageData
+      segmentationMap.current = null
+      setExplainLabels([])
+      setGalleryImages([])
+      setExplanationData(null)
+      setShowExplain(false)
+
       setBarDataImage(barDataPrediction)
+    }
+  }
+
+  const canUseLrp = () => {
+    const modelApi = iModelRef.current as unknown as {
+      GET_ACTIVATIONS_IMAGE?: unknown
+      CALCULATE_LRP_PROPAGATION?: unknown
+    }
+    return (
+      typeof modelApi?.GET_ACTIVATIONS_IMAGE === "function" &&
+      typeof modelApi?.CALCULATE_LRP_PROPAGATION === "function"
+    )
+  }
+
+  const handleRequest_ExplainPrediction = async (e: { preventDefault: () => void }) => {
+    e.preventDefault()
+
+    if (showExplain) {
+      setShowExplain(false)
+      return
+    }
+
+    setIsCalculo(true)
+
+    try {
+      const currentImageData = imgData.current
+      const currentModel = iModelRef_model.current
+      if (!currentImageData || !currentModel) {
+        await alertHelper.alertInfo(t("info.insert-input"))
+        setIsCalculo(false)
+        return
+      }
+
+      const useLrp = explainMethod === "lrp"
+      if (useLrp && !canUseLrp()) {
+        await alertHelper.alertError("LRP no está disponible para este modelo")
+        setIsCalculo(false)
+        return
+      }
+
+      const result = useLrp
+        ? await runImageClassificationExplainLrp({
+            iModel: iModelRef.current,
+            modelInstance: currentModel,
+            imageData: currentImageData,
+          })
+        : await runImageClassificationExplain({
+            iModel: iModelRef.current,
+            modelInstance: currentModel,
+            imageData: currentImageData,
+            gridSide,
+            nSamples,
+          })
+
+      segmentationMap.current = result.segmentationMapArray
+      setExplainLabels(result.selectedLabels)
+      setGalleryImages(result.debugImages)
+      setExplanationData(result.shapValues)
+      setShowExplain(true)
+      setIsCalculo(false)
+    } catch (error) {
+      console.error("Error calculating explainability", { error })
+      await alertHelper.alertError(t("Error calculating explainability"))
+      setIsCalculo(false)
     }
   }
 
@@ -380,6 +480,101 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
                     </Col>
                   </Row>
                 </Container>
+              </Card.Body>
+            </Card>
+
+            <Card className={"mt-3"} data-testid={"explainability-card"}>
+              <Card.Header>
+                <h3>{t("ui.explain.title")}</h3>
+              </Card.Header>
+              <Card.Body>
+                <div className="d-flex gap-2 mb-3">
+                  <Button
+                    variant={explainMethod === "shap" ? "primary" : "outline-primary"}
+                    onClick={() => setExplainMethod("shap")}
+                  >
+                    SHAP
+                  </Button>
+                  <Button
+                    variant={explainMethod === "lrp" ? "primary" : "outline-primary"}
+                    onClick={() => setExplainMethod("lrp")}
+                    disabled={!canUseLrp()}
+                  >
+                    LRP
+                  </Button>
+                </div>
+
+                {explainMethod === "shap" && (
+                  <Row className="mb-3">
+                    <Col xs={6}>
+                      <Form.Label>{t("ui.explain.gridSide")}</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min={2}
+                        value={gridSide}
+                        onChange={(ev) => setGridSide(Number(ev.target.value))}
+                      />
+                    </Col>
+                    <Col xs={6}>
+                      <Form.Label>{t("ui.explain.nSamples")}</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min={1}
+                        value={nSamples}
+                        onChange={(ev) => setNSamples(Number(ev.target.value))}
+                      />
+                    </Col>
+                  </Row>
+                )}
+
+                <Button
+                  variant="success"
+                  disabled={isCalculo}
+                  onClick={handleRequest_ExplainPrediction}
+                >
+                  {isCalculo
+                    ? t("ui.explain.calculating")
+                    : showExplain
+                      ? t("ui.explain.hide")
+                      : t("ui.explain.calculate")}
+                </Button>
+
+                {showExplain && galleryImages.length > 0 && (
+                  <div className="mt-3">
+                    <h5>{t("ui.explain.perturbationSamples")}</h5>
+                    <div className="d-flex flex-wrap gap-2">
+                      {galleryImages.map((src, i) => (
+                        <img
+                          key={i}
+                          src={src}
+                          alt={`perturbation-${i}`}
+                          style={{ width: 80, height: 80, border: "1px solid #eee" }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {showExplain && explanationData && (
+                  <Row className="mt-3">
+                    {explanationData.map((shapVals, idx) => {
+                      const label =
+                        explainLabels.length > idx ? explainLabels[idx] : idx + 1
+                      return (
+                        <Col xs={12} md={6} key={idx} className="mb-3">
+                          <h6 style={{ fontWeight: "bold" }}>
+                            {t("ui.explain.class", { index: String(label) })}
+                          </h6>
+                          <ShapHeatmap
+                            imageSrc={imgData.current ?? undefined}
+                            shapValues={shapVals}
+                            segmentationMap={segmentationMap.current}
+                          />
+                        </Col>
+                      )
+                    })}
+                  </Row>
+                )}
               </Card.Body>
             </Card>
           </Col>
