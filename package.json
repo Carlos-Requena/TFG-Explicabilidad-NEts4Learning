@@ -74,7 +74,8 @@
     "remark-rehype": "^11.1.2",
     "scikitjs": "^1.24.0",
     "sweetalert2": "^11.26.10",
-    "sweetalert2-react-content": "^5.1.1"
+    "sweetalert2-react-content": "^5.1.1",
+    "webshap": "^0.1.4"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.2.0",
