@@ -2,12 +2,15 @@ import { useEffect, useRef, useState, useId } from "react"
 import { useParams } from "react-router"
 import { useNavigate } from "react-router-dom"
 import { Trans, useTranslation } from "react-i18next"
-import { Card, Col, Container, Form, Row } from "react-bootstrap"
+import { Button, Card, Col, Container, Form, Row } from "react-bootstrap"
 import ReactGA from "react-ga4"
 import * as dfd from "danfojs"
 import * as tfjs from "@tensorflow/tfjs"
 
 import * as _Types from "@core/types"
+import { myModelWrapper } from "@core/explainability/ModelExplanation"
+import ShapExplanationChart from "@core/explainability/ModelExplanationChart"
+import { KernelSHAP } from "webshap"
 import { VERBOSE, DEFAULT_SELECTOR_DATASET, DEFAULT_SELECTOR_MODEL, DEFAULT_SELECTOR_INSTANCE, DEFAULT_SELECTOR_DATASET_INDEX, DEFAULT_SELECTOR_MODEL_INDEX, DEFAULT_SELECTOR_INSTANCE_INDEX } from "@/CONSTANTS"
 import { UPLOAD } from "@/DATA_MODEL"
 import { TABLE_PLOT_STYLE_CONFIG } from "@/CONSTANTS_DanfoJS"
@@ -78,6 +81,13 @@ export default function ModelReviewRegression({ dataset }: ModelReviewRegression
     //
     result                     : [],
   })
+
+  // === Explicabilidad (SHAP) ===
+  const explainer = useRef<KernelSHAP | null>(null)
+  const [showExplain, setShowExplain] = useState(false)
+  const [explanationData, setExplanationData] = useState<number[][] | null>(null)
+  const [isCalculo, setIsCalculo] = useState(false)
+  const [nSamplesExplain, setNSamplesExplain] = useState(1000)
 
   useEffect(() => {
     ReactGA.send({
@@ -236,6 +246,55 @@ export default function ModelReviewRegression({ dataset }: ModelReviewRegression
     }))
   }
 
+  const handleRequest_ExplainPrediction = async (e: { preventDefault: () => void }) => {
+    e.preventDefault()
+
+    if (showExplain) {
+      setShowExplain(false)
+      return
+    }
+
+    setIsCalculo(true)
+    try {
+      if (!prediction.input_0_raw || prediction.input_0_raw.length === 0) {
+        await alertHelper.alertInfo(t("info.insert-input"))
+        setIsCalculo(false)
+        return
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const selected: any = listCustomModels.data[listCustomModels.index]
+      const model = selected?.model
+      if (!model) {
+        await alertHelper.alertError(t("Model is not available for explainability"))
+        setIsCalculo(false)
+        return
+      }
+
+      // Background de ceros (igual que en la versión original)
+      const nBackgroundRows = 50
+      const nFeatures = model.inputs[0].shape[1] as number
+      const backgroundData = Array(nBackgroundRows)
+        .fill(null)
+        .map(() => Array(nFeatures).fill(0))
+
+      const predictor = myModelWrapper(model)
+      explainer.current = new KernelSHAP(predictor, backgroundData, 0.2022)
+
+      const instance = prediction.input_3_dataframe_scaling.values[0] as number[]
+      const nSamples = Number(nSamplesExplain) || 1000
+      const shapValues = await explainer.current.explainOneInstance(instance, nSamples)
+
+      setExplanationData(shapValues)
+      setShowExplain(true)
+      setIsCalculo(false)
+    } catch (error) {
+      console.error("Error calculating explainability", { error })
+      await alertHelper.alertError(t("Error calculating explainability"))
+      setIsCalculo(false)
+    }
+  }
+
   if (VERBOSE) console.debug("render ModelReviewRegression")
   return (
     <>
@@ -371,6 +430,87 @@ export default function ModelReviewRegression({ dataset }: ModelReviewRegression
                     prediction={prediction}
                     setPrediction={setPrediction}
                   />
+                </Card.Body>
+              </Card>
+
+              {/* Explicabilidad */}
+              <Card className={"mt-3"} data-testid={"explainability-card"}>
+                <Card.Header className={"d-flex align-items-center justify-content-between"}>
+                  <h3>
+                    <Trans
+                      i18nKey={"pages.playground.0-tabular-classification.general.explainability"}
+                      defaults={"Explicabilidad del modelo"}
+                    />
+                  </h3>
+                </Card.Header>
+                <Card.Body>
+                  <Row className={"mb-2"}>
+                    <Col md={6} className="mb-2">
+                      <Form.Group controlId="inputNSamplesRegression">
+                        <Form.Label>
+                          <Trans
+                            i18nKey={"pages.playground.1-regression.n-samples"}
+                            defaults={"Number of samples"}
+                          />
+                        </Form.Label>
+                        <Form.Control
+                          type="number"
+                          size={"sm"}
+                          value={nSamplesExplain}
+                          min={1}
+                          step={1}
+                          onChange={(e) => setNSamplesExplain(Number(e.target.value))}
+                        />
+                        <Form.Text className="text-muted">
+                          <Trans
+                            i18nKey={"pages.playground.1-regression.n-samples-help"}
+                            defaults={"Samples used by KernelSHAP"}
+                          />
+                        </Form.Text>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <Row className={"mb-3"}>
+                    <Col>
+                      <div className="d-grid gap-2">
+                        <Button
+                          size={"lg"}
+                          variant={showExplain ? "outline-secondary" : "primary"}
+                          onClick={(e) => handleRequest_ExplainPrediction(e)}
+                          disabled={isCalculo || prediction.input_0_raw?.length === 0}
+                        >
+                          {isCalculo
+                            ? t("pages.playground.0-tabular-classification.general.calculating", {
+                                defaultValue: "Calculating...",
+                              })
+                            : showExplain
+                              ? t("pages.playground.0-tabular-classification.general.hide-explain", {
+                                  defaultValue: "Hide explanation",
+                                })
+                              : t("pages.playground.0-tabular-classification.general.show-explain", {
+                                  defaultValue: "Show explanation",
+                                })}
+                        </Button>
+                      </div>
+                    </Col>
+                  </Row>
+
+                  <Row>
+                    <Col>
+                      {showExplain && explanationData && (
+                        <ShapExplanationChart
+                          shapValues={explanationData}
+                          predictedClass={0}
+                          predictionProbs={prediction.result}
+                          features={
+                            listDatasets.data[listDatasets.index]?.dataframe_processed
+                              ?.columns || []
+                          }
+                        />
+                      )}
+                    </Col>
+                  </Row>
                 </Card.Body>
               </Card>
             </Col>

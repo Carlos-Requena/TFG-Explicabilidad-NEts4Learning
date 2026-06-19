@@ -1,13 +1,21 @@
 {
   "ui": {
+    "blur": {
+      "enable": "Aplicar blur a regiones enmascaradas",
+      "kernelSize": "Tamaño kernel blur (impar)",
+      "passes": "Veces de blur (passes)"
+    },
     "explain": {
       "title": "Explicabilidad (SHAP)",
-      "perturbationSamples": "Muestras de perturbación:",
-      "gridSide": "Grid Side (features por lado)",
+      "perturbationSamples": "Muestras de Perturbación:",
+      "gridSide": "Grid Side (features per side)",
       "nSamples": "nSamples (SHAP)",
-      "calculate": "Explicar predicción",
-      "hide": "Ocultar explicación",
+      "mask": "Máscara (SHAP)",
+      "maskRange": "Máscara (0..1)",
       "calculating": "Calculando...",
+      "explainPrediction": "Explicar Predicción",
+      "hideExplanation": "Ocultar explicación",
+      "noData": "No hay datos de explicación disponibles.",
       "class": "Clase #{{index}}"
     }
   },

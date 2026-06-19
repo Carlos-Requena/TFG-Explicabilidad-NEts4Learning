@@ -1,13 +1,21 @@
 {
   "ui": {
+    "blur": {
+      "enable": "Apply blur to masked regions",
+      "kernelSize": "Blur kernel size (odd)",
+      "passes": "Blur passes"
+    },
     "explain": {
       "title": "Explainability (SHAP)",
       "perturbationSamples": "Perturbation samples:",
       "gridSide": "Grid Side (features per side)",
       "nSamples": "nSamples (SHAP)",
-      "calculate": "Explain prediction",
-      "hide": "Hide explanation",
+      "mask": "Mask (SHAP)",
+      "maskRange": "Mask (0..1)",
       "calculating": "Calculating...",
+      "explainPrediction": "Explain prediction",
+      "hideExplanation": "Hide explanation",
+      "noData": "No explanation data available.",
       "class": "Class #{{index}}"
     }
   },

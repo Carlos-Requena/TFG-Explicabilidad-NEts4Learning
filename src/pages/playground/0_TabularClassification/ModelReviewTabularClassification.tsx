@@ -17,6 +17,9 @@ import ModelReviewTabularClassificationPredictForm from "@pages/playground/0_Tab
 import * as DataFrameUtils from "@core/dataframe/DataFrameUtils"
 import { UPLOAD } from "@/DATA_MODEL"
 import type { BasicPrediction_t, DatasetProcessed_t } from "@core/types"
+import { myModelWrapper } from "@core/explainability/ModelExplanation"
+import ShapExplanationChart from "@core/explainability/ModelExplanationChart"
+import { KernelSHAP } from "webshap"
 type Props = {
   dataset: string
 }
@@ -41,6 +44,14 @@ export default function ModelReviewTabularClassification(props: Props) {
   const [vectorToPredict, setVectorToPredict] = useState<number[]>([])
 
   const [prediction, setPrediction] = useState<BasicPrediction_t>({ labels: [], data: [] })
+
+  // === Explicabilidad (SHAP) ===
+  const explainer = useRef<KernelSHAP | null>(null)
+  const [showExplain, setShowExplain] = useState(false)
+  const [explanationData, setExplanationData] = useState<number[][] | null>(null)
+  const [isCalculo, setIsCalculo] = useState(false)
+  const [nSamplesExplain, setNSamplesExplain] = useState(1000)
+  const [selectedClassIndex, setSelectedClassIndex] = useState(0)
 
   const handleChange_onProgress = (fraction: number) => {
     setProgress(fraction * 100)
@@ -166,6 +177,52 @@ export default function ModelReviewTabularClassification(props: Props) {
     }
 
     setIsButtonToPredictDisabled(false)
+  }
+
+  const handleRequest_ExplainPrediction = async (e: { preventDefault: () => void }) => {
+    e.preventDefault()
+
+    if (showExplain) {
+      setShowExplain(false)
+      return
+    }
+
+    setIsCalculo(true)
+    try {
+      if (!vectorToPredict || vectorToPredict.length === 0) {
+        await alertHelper.alertInfo(t("info.insert-input"))
+        setIsCalculo(false)
+        return
+      }
+      if (model_ref.current === null) {
+        setIsCalculo(false)
+        return
+      }
+
+      // Background de ceros (igual que en la versión original)
+      const nBackgroundRows = 50
+      const nFeatures = vectorToPredict.length
+      const backgroundData = Array(nBackgroundRows)
+        .fill(null)
+        .map(() => Array(nFeatures).fill(0))
+
+      const predictor = myModelWrapper(model_ref)
+      explainer.current = new KernelSHAP(predictor, backgroundData, 0.2022)
+
+      const nSamples = Number(nSamplesExplain) || 1000
+      const shapValues = await explainer.current.explainOneInstance(
+        vectorToPredict,
+        nSamples,
+      )
+
+      setExplanationData(shapValues)
+      setShowExplain(true)
+      setIsCalculo(false)
+    } catch (error) {
+      console.error("Error calculating explainability", { error })
+      await alertHelper.alertError(t("Error calculating explainability"))
+      setIsCalculo(false)
+    }
   }
 
   const setExample = (example: Record<string, any>) => {
@@ -328,6 +385,111 @@ export default function ModelReviewTabularClassification(props: Props) {
             </Card>
 
             <ModelReviewTabularClassificationPredict prediction={prediction} />
+
+            {/* Explicabilidad */}
+            <Card className={"mt-3"} data-testid={"explainability-card"}>
+              <Card.Header className={"d-flex align-items-center justify-content-between"}>
+                <h3>
+                  <Trans
+                    i18nKey={"pages.playground.0-tabular-classification.general.explainability"}
+                    defaults={"Explicabilidad del modelo"}
+                  />
+                </h3>
+              </Card.Header>
+              <Card.Body>
+                <Row className={"mb-2"}>
+                  <Col md={6} className="mb-2">
+                    <Form.Group controlId="selectPredictedClass">
+                      <Form.Label>
+                        <Trans
+                          i18nKey={"pages.playground.0-tabular-classification.general.select-class"}
+                          defaults={"Select class"}
+                        />
+                      </Form.Label>
+                      <Form.Select
+                        size={"sm"}
+                        value={selectedClassIndex}
+                        onChange={(e) => setSelectedClassIndex(Number(e.target.value))}
+                      >
+                        {(iModelInstance_ref.current?.CLASSES || []).map((c, idx) => (
+                          <option key={`class_${idx}`} value={idx}>
+                            {c}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6} className="mb-2">
+                    <Form.Group controlId="inputNSamples">
+                      <Form.Label>
+                        <Trans
+                          i18nKey={"pages.playground.0-tabular-classification.general.n-samples"}
+                          defaults={"Number of samples"}
+                        />
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        size={"sm"}
+                        value={nSamplesExplain}
+                        min={1}
+                        step={1}
+                        onChange={(e) => setNSamplesExplain(Number(e.target.value))}
+                      />
+                      <Form.Text className="text-muted">
+                        <Trans
+                          i18nKey={"pages.playground.0-tabular-classification.general.n-samples-help"}
+                          defaults={"Samples used by KernelSHAP"}
+                        />
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className={"mb-3"}>
+                  <Col>
+                    <div className="d-grid gap-2">
+                      <Button
+                        size={"lg"}
+                        variant={showExplain ? "outline-secondary" : "primary"}
+                        onClick={(e) => handleRequest_ExplainPrediction(e)}
+                        disabled={isCalculo || prediction?.labels?.length === 0}
+                      >
+                        {isCalculo
+                          ? t("pages.playground.0-tabular-classification.general.calculating", {
+                              defaultValue: "Calculating...",
+                            })
+                          : showExplain
+                            ? t("pages.playground.0-tabular-classification.general.hide-explain", {
+                                defaultValue: "Hide explanation",
+                              })
+                            : t("pages.playground.0-tabular-classification.general.show-explain", {
+                                defaultValue: "Show explanation",
+                              })}
+                      </Button>
+                    </div>
+                  </Col>
+                </Row>
+
+                <Row>
+                  <Col>
+                    {showExplain && explanationData && (
+                      <ShapExplanationChart
+                        shapValues={explanationData}
+                        predictedClass={selectedClassIndex}
+                        predictionProbs={prediction}
+                        features={
+                          iModelInstance_ref.current?.FORM?.map((f: any) =>
+                            String(f.name)
+                              .replace(/_/g, " ")
+                              .replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                          ) || []
+                        }
+                      />
+                    )}
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
           </Col>
         </Row>
       </Container>
