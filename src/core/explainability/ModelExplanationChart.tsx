@@ -14,12 +14,14 @@ interface ShapExplanationChartProps {
   predictedClass: number;
   predictionProbs?: unknown;
   features: string[];
+  sortOrder?: 'desc' | 'asc' | 'none';
 }
 
 export default function ShapExplanationChart({
   shapValues,
   predictedClass,
   features,
+  sortOrder = 'desc',
 }: ShapExplanationChartProps) {
   const data: Array<{ name: string; pv: number }> = [];
 
@@ -28,6 +30,16 @@ export default function ShapExplanationChart({
       name: features[i],
       pv: shapValues[predictedClass][i],
     });
+  }
+
+  // El orden lo decide quien usa el componente vía `sortOrder`:
+  //   desc → mayor a menor (importancia arriba, convención SHAP)
+  //   asc  → menor a mayor
+  //   none → orden original de las features
+  if (sortOrder === 'desc') {
+    data.sort((a, b) => b.pv - a.pv);
+  } else if (sortOrder === 'asc') {
+    data.sort((a, b) => a.pv - b.pv);
   }
 
   return (
