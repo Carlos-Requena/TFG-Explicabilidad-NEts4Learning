@@ -1581,6 +1581,7 @@
           "explain-panel-title": "Explicabilidad",
           "explain-panel-local-title": "Explicación local (una instancia)",
           "explain-panel-local-body": "SHAP explica una predicción concreta repartiendo la diferencia entre esta predicción y la predicción media del modelo (valor base) entre las características. Cada barra indica cuánto y en qué dirección empuja una característica: positiva hacia la clase seleccionada, negativa en contra.",
+          "explain-panel-local-body-regression": "SHAP explica una predicción concreta repartiendo la diferencia entre el valor predicho y la predicción media del modelo (valor base) entre las características. Cada barra indica cuánto y en qué dirección empuja una característica: positiva sube el valor predicho, negativa lo baja.",
           "explain-panel-global-title": "Importancia global (todas las instancias)",
           "explain-panel-global-body": "La importancia global agrega muchas explicaciones locales. El gráfico de barras muestra la media de los valores absolutos (media |SHAP|): cuánto pesa cada característica en promedio. El beeswarm añade la dirección y la dispersión del efecto, coloreando cada punto según el valor de la característica."
         },

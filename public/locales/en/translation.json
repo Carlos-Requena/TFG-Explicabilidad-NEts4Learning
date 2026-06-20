@@ -1581,6 +1581,7 @@
           "explain-panel-title": "Explainability",
           "explain-panel-local-title": "Local explanation (one instance)",
           "explain-panel-local-body": "SHAP explains a single prediction by distributing the difference between this prediction and the model's average prediction (base value) across the features. Each bar shows how much, and in which direction, a feature pushes: positive toward the selected class, negative against it.",
+          "explain-panel-local-body-regression": "SHAP explains a single prediction by distributing the difference between the predicted value and the model's average prediction (base value) across the features. Each bar shows how much, and in which direction, a feature pushes: positive raises the predicted value, negative lowers it.",
           "explain-panel-global-title": "Global importance (all instances)",
           "explain-panel-global-body": "Global importance aggregates many local explanations. The bar chart shows the mean of the absolute values (mean |SHAP|): how much each feature weighs on average. The beeswarm adds the direction and spread of the effect, colouring each point by the feature value."
         },
