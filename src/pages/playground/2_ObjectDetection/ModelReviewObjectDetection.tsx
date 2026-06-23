@@ -564,25 +564,32 @@ export default function ModelReviewObjectDetection(props: ModelReviewObjectDetec
 
         <Row>
           <Col xs={12} sm={12} md={12} xl={3} xxl={3}>
-            <Card className={'sticky-top mt-3 mb-3 border-info'}>
-              <Card.Header
-                className={'d-flex align-items-center justify-content-between'}
-              >
-                <h2>
-                  <Trans i18nKey={iModel_ref.current.TITLE} />
-                </h2>
-                {/*{import.meta.env.VITE_SHOW_NEW_FEATURE === 'true' &&*/}
-                {/*  <div className="d-flex">*/}
-                {/*    <Button size={'sm'}*/}
-                {/*            variant={'outline-info'}*/}
-                {/*            onClick={handleClick_openSummary}>Summary</Button>*/}
-                {/*  </div>*/}
-                {/*}*/}
-              </Card.Header>
-              <Card.Body>
-                {dataset !== UPLOAD && <>{iModel_ref.current.DESCRIPTION()}</>}
-              </Card.Body>
-            </Card>
+            <div className={'sticky-top'} style={{ zIndex: 0 }}>
+              <Card className={'mt-3 mb-3 border-info'}>
+                <Card.Header
+                  className={'d-flex align-items-center justify-content-between'}
+                >
+                  <h2>
+                    <Trans i18nKey={iModel_ref.current.TITLE} />
+                  </h2>
+                </Card.Header>
+                <Card.Body>
+                  {dataset !== UPLOAD && <>{iModel_ref.current.DESCRIPTION()}</>}
+                </Card.Body>
+              </Card>
+
+              {/* Panel narrativo del método (idéntico patrón al review tabular). OD usa SHAP. */}
+              <Card className={'mb-3 border-success'}>
+                <Card.Header>
+                  <h2 className={'h5 mb-0'}>
+                    <Trans i18nKey={'pages.playground.0-tabular-classification.general.explain-panel-title'} />
+                  </h2>
+                </Card.Header>
+                <Card.Body>
+                  <p className={'small mb-0'}>{t('ui.explain.about-shap')}</p>
+                </Card.Body>
+              </Card>
+            </div>
           </Col>
 
           <Col xs={12} sm={12} md={12} xl={9} xxl={9}>

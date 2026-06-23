@@ -244,8 +244,11 @@ export default function ModelReviewTabularClassification(props: Props) {
         return
       }
 
-      // Background muestreado del dataset (mismo espacio que vectorToPredict).
-      const nFeatures = vectorToPredict.length
+      // La instancia debe ser numérica (vectorToPredict puede traer strings en datasets
+      // categóricos como Lymphography). Lo parseamos igual que hace el predict.
+      const instance = vectorToPredict.map((v) => parseFloat(String(v)))
+      // Background muestreado del dataset (mismo espacio que la instancia).
+      const nFeatures = instance.length
       const backgroundData = buildShapBackground(backgroundPool_ref.current, nFeatures)
 
       const predictor = myModelWrapper(model_ref)
@@ -253,7 +256,7 @@ export default function ModelReviewTabularClassification(props: Props) {
 
       const nSamples = Number(nSamplesExplain) || 1000
       const shapValues = await explainer.current.explainOneInstance(
-        vectorToPredict,
+        instance,
         nSamples,
       )
 

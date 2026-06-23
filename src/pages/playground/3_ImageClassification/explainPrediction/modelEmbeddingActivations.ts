@@ -521,7 +521,6 @@ export function applyLRP(params: ApplyLRPParams): tfjs.Tensor {
     epsilon = 1e-9,
     alpha = 0.5,
     beta = 0.5,
-    winnerTakesAll = true,
   } = options;
 
   switch (layerType) {

@@ -8,6 +8,8 @@
     "explain": {
       "title": "Explainability (SHAP)",
       "method": "Method",
+      "about-lrp": "LRP (Layer-wise Relevance Propagation) runs backwards through the network from the predicted class, distributing its relevance down to the input pixels. The heatmap shows which areas of the image support the model's prediction.",
+      "about-shap": "We split the image into segments (superpixels) and measure each one's importance by masking it or keeping it visible across many different combinations, observing how the prediction changes. The heatmap colours each segment by how much it contributes to the prediction.",
       "perturbationSamples": "Perturbation samples:",
       "gridSide": "Grid Side (features per side)",
       "nSamples": "nSamples (SHAP)",

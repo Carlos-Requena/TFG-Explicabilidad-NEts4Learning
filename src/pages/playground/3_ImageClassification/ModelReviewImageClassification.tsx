@@ -211,6 +211,11 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
 
       // Guardamos la imagen predicha para la explicabilidad y reseteamos resultados previos
       imgData.current = imageData
+      // También la pintamos en el canvas original (id "originalImage"), que es la imagen base
+      // del heatmap; si no, al explicar un ejemplo el mapa de calor se ve sobre blanco.
+      if (canvas_original_image_ref.current) {
+        UTILS_image.drawImageInCanvasWithContainer(image, canvas_original_image_ref.current.id)
+      }
       segmentationMap.current = null
       setExplainLabels([])
       setGalleryImages([])
@@ -356,14 +361,32 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
         </Row>
         <Row>
           <Col xs={12} sm={12} md={12} xl={3} xxl={3}>
-            <Card className={"sticky-top mt-3 border-info"}>
-              <Card.Header>
-                <h2>
-                  <Trans i18nKey={iModelRef.current.TITLE} />
-                </h2>
-              </Card.Header>
-              <Card.Body>{dataset === UPLOAD ? <></> : iModelRef.current.DESCRIPTION()}</Card.Body>
-            </Card>
+            <div className={"sticky-top"} style={{ zIndex: 0 }}>
+              <Card className={"mt-3 border-info"}>
+                <Card.Header>
+                  <h2>
+                    <Trans i18nKey={iModelRef.current.TITLE} />
+                  </h2>
+                </Card.Header>
+                <Card.Body>{dataset === UPLOAD ? <></> : iModelRef.current.DESCRIPTION()}</Card.Body>
+              </Card>
+
+              {/* Panel narrativo del método de explicabilidad (idéntico patrón al review tabular). */}
+              <Card className={"mt-3 border-success"}>
+                <Card.Header>
+                  <h2 className={"h5 mb-0"}>
+                    <Trans i18nKey={"pages.playground.0-tabular-classification.general.explain-panel-title"} />
+                  </h2>
+                </Card.Header>
+                <Card.Body>
+                  <p className={"small mb-0"}>
+                    {isMNIST() || explainMethod === "lrp"
+                      ? t("ui.explain.about-lrp")
+                      : t("ui.explain.about-shap")}
+                  </p>
+                </Card.Body>
+              </Card>
+            </div>
           </Col>
 
           <Col xs={12} sm={12} md={12} xl={9} xxl={9}>

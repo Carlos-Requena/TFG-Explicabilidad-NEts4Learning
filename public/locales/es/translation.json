@@ -8,6 +8,8 @@
     "explain": {
       "title": "Explicabilidad (SHAP)",
       "method": "Método",
+      "about-lrp": "LRP (propagación de la relevancia capa a capa) recorre la red hacia atrás desde la clase predicha y reparte su relevancia hasta los píxeles de entrada. El mapa de calor muestra qué zonas de la imagen sostienen la predicción del modelo.",
+      "about-shap": "Dividimos la imagen en segmentos (superpíxeles) y medimos la importancia de cada uno tapándolo o dejándolo visible en muchas combinaciones distintas, observando cómo cambia la predicción. El mapa de calor colorea cada segmento según cuánto aporta a la predicción.",
       "perturbationSamples": "Muestras de Perturbación:",
       "gridSide": "Grid Side (features per side)",
       "nSamples": "nSamples (SHAP)",
