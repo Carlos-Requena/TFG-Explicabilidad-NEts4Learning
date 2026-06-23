@@ -326,6 +326,7 @@
     },
     "explain": {
       "title": "説明可能性 (SHAP)",
+      "method": "手法",
       "perturbationSamples": "摂動サンプル:",
       "gridSide": "Grid Side (features per side)",
       "nSamples": "nSamples (SHAP)",

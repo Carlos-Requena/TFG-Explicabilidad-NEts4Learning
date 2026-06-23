@@ -7,6 +7,7 @@
     },
     "explain": {
       "title": "Explainability (SHAP)",
+      "method": "Method",
       "perturbationSamples": "Perturbation samples:",
       "gridSide": "Grid Side (features per side)",
       "nSamples": "nSamples (SHAP)",

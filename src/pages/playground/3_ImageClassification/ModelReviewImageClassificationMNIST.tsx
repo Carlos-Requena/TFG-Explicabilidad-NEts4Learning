@@ -9,6 +9,7 @@ type Props = {
   iChartRef_image: React.RefObject<any>,
   setBarDataImage: React.Dispatch<React.SetStateAction<any>>,
   onImageDataReady?: (imageData: ImageData) => void,
+  onResetExplain?: () => void,
 }
 export default function ModelReviewImageClassificationMNIST (props: Props) {
   const {
@@ -16,7 +17,8 @@ export default function ModelReviewImageClassificationMNIST (props: Props) {
     iModelRef_model,
     iChartRef_image,
     setBarDataImage,
-    onImageDataReady
+    onImageDataReady,
+    onResetExplain
   } = props
 
   // TODO Cambiar a ref
@@ -77,7 +79,9 @@ export default function ModelReviewImageClassificationMNIST (props: Props) {
             }}
             clearFunction={async () => {
               await handleCanvasDraw_Clear()
-            }}/>
+              onResetExplain?.()
+            }}
+            onDrawStart={() => onResetExplain?.()}/>
         </Card.Body>
       </Card>
     </Col>

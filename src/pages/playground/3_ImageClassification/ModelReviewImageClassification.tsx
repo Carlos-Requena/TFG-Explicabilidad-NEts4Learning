@@ -84,6 +84,7 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
   const segmentationMap = useRef<Int32Array | number[] | null>(null)
   const [showExplain, setShowExplain] = useState(false)
   const [isCalculo, setIsCalculo] = useState(false)
+  // En MNIST (números) solo LRP; en el resto (KMNIST) el usuario elige SHAP o LRP.
   const [explainMethod, setExplainMethod] = useState<"shap" | "lrp">("shap")
   const [gridSide, setGridSide] = useState(6)
   const [nSamples, setNSamples] = useState(75)
@@ -267,6 +268,16 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
     )
   }
 
+  // Limpia el heatmap previo (al volver a dibujar/escribir un número, o al borrar el lienzo).
+  const clearExplainResult = () => {
+    if (!showExplain && explanationData === null) return
+    setShowExplain(false)
+    setExplanationData(null)
+    setGalleryImages([])
+    setExplainLabels([])
+    segmentationMap.current = null
+  }
+
   const handleRequest_ExplainPrediction = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
 
@@ -286,7 +297,8 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
         return
       }
 
-      const useLrp = explainMethod === "lrp"
+      // MNIST (números): siempre LRP. El resto (KMNIST): lo que elija el usuario en el toggle.
+      const useLrp = isMNIST() || explainMethod === "lrp"
       if (useLrp && !canUseLrp()) {
         await alertHelper.alertError("LRP no está disponible para este modelo")
         setIsCalculo(false)
@@ -430,6 +442,7 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
                     iModelRef_model={iModelRef_model}
                     iChartRef_image={iChartRef_image}
                     setBarDataImage={setBarDataImage}
+                    onResetExplain={clearExplainResult}
                     onImageDataReady={(imageData) => {
                       imgData.current = imageData
                       segmentationMap.current = null
@@ -501,27 +514,29 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
 
             <Card className={"mt-3"} data-testid={"explainability-card"}>
               <Card.Header className="d-flex justify-content-between align-items-center">
-                <h3>{t("ui.explain.title")}</h3>
-                <div className="d-flex align-items-center gap-2">
-                  <span style={{ fontSize: "0.9rem" }}>Método:</span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={explainMethod === "shap" ? "primary" : "outline-primary"}
-                    onClick={() => setExplainMethod("shap")}
-                  >
-                    SHAP
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={explainMethod === "lrp" ? "primary" : "outline-primary"}
-                    onClick={() => setExplainMethod("lrp")}
-                    disabled={!canUseLrp()}
-                  >
-                    LRP
-                  </Button>
-                </div>
+                <h3>{t("ui.explain.title")}{isMNIST() ? " (LRP)" : ""}</h3>
+                {!isMNIST() && (
+                  <div className="d-flex align-items-center gap-2">
+                    <span style={{ fontSize: "0.9rem" }}>{t("ui.explain.method", { defaultValue: "Método" })}:</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={explainMethod === "shap" ? "primary" : "outline-primary"}
+                      onClick={() => setExplainMethod("shap")}
+                    >
+                      SHAP
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={explainMethod === "lrp" ? "primary" : "outline-primary"}
+                      onClick={() => setExplainMethod("lrp")}
+                      disabled={!canUseLrp()}
+                    >
+                      LRP
+                    </Button>
+                  </div>
+                )}
               </Card.Header>
               <Card.Body>
                 {showExplain && galleryImages.length > 0 && (
@@ -597,7 +612,7 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
 
                 <div className="mt-3">
                   <Form>
-                    {explainMethod === "shap" && (
+                    {!isMNIST() && explainMethod === "shap" && (
                       <>
                         <Form.Group className="mb-2" controlId="formGridSideBottomIC">
                           <Form.Label>{t("ui.explain.gridSide")}</Form.Label>

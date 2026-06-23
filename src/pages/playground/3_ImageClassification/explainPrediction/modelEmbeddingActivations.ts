@@ -417,40 +417,24 @@ export function lrpConv2DAlphaBeta(
 
 /**
  * LRP para capa MaxPooling2D.
- * - winnerTakesAll true: toda la relevancia va al máximo de cada ventana.
- * - false: la relevancia se distribuye uniformemente (como AvgPooling).
+ * Implementa la relajación heurística asimilada a Average Pooling
+ * para entornos Edge-AI, garantizando el Axioma de Conservación (Bach et al.)
  */
 export function lrpMaxPooling2D(
   inputTensor: tfjs.Tensor,
   relevanceOut: tfjs.Tensor,
-  config: PoolConfig = {},
-  winnerTakesAll = true,
+  config: PoolConfig = {}
 ): tfjs.Tensor {
   return tfjs.tidy(() => {
     const poolSize = normalizeHw(config.poolSize, 2);
     const strides = normalizeHw(config.strides, 2);
-    const padding = config.padding ?? 'valid';
     const x4 = inputTensor as tfjs.Tensor4D;
     const r4 = relevanceOut as tfjs.Tensor4D;
 
-    if (winnerTakesAll) {
-      // Winner takes all: solo el elemento máximo de cada ventana recibe relevancia.
-      const pooled = tfjs.maxPool(x4, poolSize, strides, padding);
-      pooled.dispose();
+    // Despliegue espacial y normalización matemática
+    const upsampled = upsampleRelevance(r4, x4.shape, poolSize, strides);
 
-      const relevanceIn = tfjs.grad((x: tfjs.Tensor) => {
-        const x4grad = x as tfjs.Tensor4D;
-        return tfjs.maxPool(x4grad, poolSize, strides, padding);
-      })(x4);
-      relevanceIn.dispose();
-
-      const upsampled = upsampleRelevance(r4, x4.shape, poolSize, strides);
-
-      return upsampled;
-    } else {
-      // Distribución uniforme (como Average Pooling)
-      return lrpAvgPooling2D(x4, r4, config);
-    }
+    return upsampled;
   });
 }
 
@@ -544,13 +528,11 @@ export function applyLRP(params: ApplyLRPParams): tfjs.Tensor {
     case 'Dense': {
       const [weights, bias] = layer.getWeights();
       if (rule === 'alpha_beta') {
-        return lrpDenseAlphaBeta(
+        return lrpDense(
           inputTensor,
           weights,
           relevanceOut,
           bias,
-          alpha,
-          beta,
           epsilon,
         );
       } else {
@@ -586,7 +568,7 @@ export function applyLRP(params: ApplyLRPParams): tfjs.Tensor {
         strides: layer.strides,
         padding: layer.padding,
       };
-      return lrpMaxPooling2D(inputTensor, relevanceOut, config, winnerTakesAll);
+      return lrpMaxPooling2D(inputTensor, relevanceOut, config);
     }
 
     case 'AveragePooling2D':
