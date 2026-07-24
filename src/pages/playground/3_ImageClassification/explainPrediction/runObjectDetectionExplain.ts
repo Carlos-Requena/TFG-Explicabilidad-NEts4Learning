@@ -204,7 +204,7 @@ export async function runImageClassificationExplainLrp(
     activations,
     {
       rule: 'epsilon',
-      epsilon: 1e-9,
+      epsilon: 0.01,
       winnerTakesAll: true,
     },
   );

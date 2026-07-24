@@ -335,8 +335,6 @@
       "mask": "マスク (SHAP)",
       "maskRange": "マスク (0..1)",
       "calculating": "計算中...",
-      "calculate": "予測を説明",
-      "hide": "説明を非表示",
       "explainPrediction": "予測を説明",
       "hideExplanation": "説明を非表示",
       "noData": "説明データはありません。",
@@ -594,48 +592,7 @@
         "description": {
           "text": {
             "0": "<i>AUTO MPG</i> データセットは、カーネギーメロン大学で管理されているStatLibライブラリから取得されました。このデータセットは、1983年の米国統計学会の展示会で使用されました。",
-            "1": "「Auto MPG」（ガロンあたりのマイル）という用語は、一般的に米国で使用される燃費効率の測定単位を指します。この尺度は、車両が1ガロンの燃料で走行できるマイル数を示します。スペイン語では、通常、「consumo de combustible」（燃料消費量）または「rendimiento de combustible」（燃費性能）という用語が使用されます。国によって測定単位が異なることに注意することが重要です。",
-            "link": "このデータセットの詳細については、<link1>ics.uci.edu</link1>リポジトリをご覧ください。",
-            "details-0": {
-              "title": "情報",
-              "list": {
-                "0": "<b>MPG</b>: Millas Per Galón (ガロンあたりのマイル)。インスタンスの特定の車両によって消費される燃料の量です。予測変数としても使用できます。",
-                "1": "<b>cylinders</b>: シリンダー数。離散値。",
-                "2": "<b>displacement</b>: エンジンの排気量。連続的な量的値。",
-                "3": "<b>horsepower</b>: 馬力。連続値。",
-                "4": "<b>weight</b>: 重量。連続値。",
-                "5": "<b>acceleration</b>: 加速度。",
-                "6": "<b>model year</b>: モデルの発売年。",
-                "7": "<b>origin</b>: 発生源。3つの離散値（1: 米国, 2: ヨーロッパ, 3: アジア）。",
-                "8": "<b>car name</b>: 車両名（文字列）。"
-              }
-            },
-            "details-1": {
-              "title": "入力データ",
-              "list": {
-                "0": "<b>MPG</b>: 連続値",
-                "1": "<b>cylinders</b>: 離散多値、4, 6, 8",
-                "2": "<b>displacement</b>: 連続値",
-                "3": "<b>horsepower</b>: 連続値",
-                "4": "<b>weight</b>: 連続値",
-                "5": "<b>acceleration</b>: 連続値",
-                "6": "<b>model Year</b>: 離散多値",
-                "7": "<b>origin</b>: 離散多値、1は米国、2はヨーロッパ、3はアジア",
-                "8": "<b>car name</b>: 文字列（各インスタンスで一意）"
-              }
-            },
-            "details-2": {
-              "title": "出力データ",
-              "list": {
-                "0": "計算された回帰 (<b>MPG</b>)"
-              }
-            },
-            "details-3": {
-              "title": "参照元",
-              "list": {
-                "0": "<link1>Auto MPG</link1>"
-              }
-            }
+            "1": "「Auto MPG」（ガロンあたりのマイル）という用語は、一般的に米国で使用される燃費効率の測定単位を指します。この尺度は、車両が1ガロンの燃料で走行できるマイル数を示します。スペイン語では、通常、「consumo de combustible」（燃料消費量）または「rendimiento de combustible」（燃費性能）という用語が使用されます。国によって測定単位が異なることに注意することが重要です。"
           }
         }
       },
@@ -1400,6 +1357,10 @@
         "end": {
           "0": "時系列チャートは、時間の経過に伴うデータの変化を分析および理解するための不可欠なツールです。傾向、季節的なパターン、変化、および予測に関する貴重な情報を提供し、情報に基づいた決定と比較分析を可能にします。"
         }
+      },
+      "index-info": "選択するインデックスは一意の系列を含み、表示する列の隣のインデックスを選択してはいけません",
+      "form": {
+        "index": "インデックス"
       }
     },
     "time-series": {
@@ -1953,6 +1914,136 @@
           }
         }
       }
+    },
+    "dataframe": {
+      "title": "データセットを分析",
+      "upload-csv": "データセットをアップロード"
+    },
+    "menu": {
+      "select-model": {},
+      "select-dataset": {}
+    }
+  },
+  "generator": {
+    "table-models": {
+      "list-models-generated": "生成されたモデルの一覧",
+      "learning-rate": "学習率",
+      "test-size": "テストセットのサイズ",
+      "n-of-epochs": "エポック数",
+      "n-epochs": "エポック数",
+      "id-optimizer": "オプティマイザ",
+      "id-loss": "損失",
+      "id-metrics": "評価指標",
+      "layers": "レイヤー",
+      "download": "ダウンロード",
+      "features": "特徴量",
+      "open-visor": "ビューアを開く",
+      "close-visor": "ビューアを閉じる",
+      "history": "結果"
+    }
+  },
+  "hr": {
+    "information": "情報",
+    "editor": "エディタ",
+    "dataset": "データセット",
+    "model": "モデル",
+    "generated-models": "生成されたモデル",
+    "predict": "予測",
+    "classify": "分類",
+    "tasks": "タスク",
+    "00-tabular-classification": "表形式データの分類",
+    "tutorial-00-tabular-classification": "表形式データ分類のモデルを学習",
+    "01-regression": "回帰",
+    "02-object-detection": "物体検出",
+    "03-image-classification": "画像分類",
+    "optimization-function": "最適化関数",
+    "activation-functions": "活性化関数",
+    "loss-functions": "損失関数",
+    "metric-function": "評価指標関数",
+    "layers": "レイヤー",
+    "process-dataset": "データセットの処理",
+    "project": "プロジェクト",
+    "add-model-dataset": "プロジェクトにモデルを追加",
+    "dataframe": "データフレーム"
+  },
+  "form-dataframe": {
+    "int32": "整数",
+    "float32": "浮動小数点数",
+    "string": "テキスト",
+    "label-encoder": "ラベルエンコーダ",
+    "one-hot-encoder": "ワンホットエンコーダ",
+    "drop": "削除",
+    "ignored": "無視",
+    "submit": "データフレームを処理"
+  },
+  "joyride": {
+    "back": "戻る",
+    "close": "閉じる",
+    "last": "最後",
+    "next": "次へ",
+    "open": "開く",
+    "skip": "スキップ"
+  },
+  "upload-dataset-info": "タスクを実行するにはデータセットをアップロードする必要があります。",
+  "upload-model-info": "タスクを実行するにはモデルをアップロードする必要があります。",
+  "select-attr": "属性を選択",
+  "upload-dataset": "データセットをアップロード",
+  "00-tc": {
+    "car": {
+      "buying": "購入価格",
+      "maint": "メンテナンス費用",
+      "doors": "ドアの数",
+      "persons": "乗車定員",
+      "lug_boot": "トランクの大きさ",
+      "safety": "車の推定安全性",
+      "result": "結果",
+      "unacc": "不可",
+      "acc": "可",
+      "good": "良",
+      "vgood": "優"
+    },
+    "iris": {
+      "sepal_length": "がく片の長さ",
+      "sepal_width": "がく片の幅",
+      "petal_length": "花弁の長さ",
+      "petal_width": "花弁の幅",
+      "class": "クラス",
+      "Iris-setosa": "ヒオウギアヤメ (setosa)",
+      "Iris-versicolor": "ブルーフラッグ (versicolor)",
+      "Iris-virginica": "バージニカ (virginica)"
+    },
+    "lymphography": {
+      "lymphatics": "リンパ管",
+      "block of affere": "輸入リンパ管の閉塞",
+      "bl": {
+        " of lymph": {
+          " c": "リンパ管(c)の閉塞",
+          " s": "リンパ管(s)の閉塞"
+        }
+      },
+      "by pass": "バイパス",
+      "extravasates": "血管外漏出",
+      "regeneration": "再生",
+      "early uptake in": "早期取り込み",
+      "lym": {
+        "nodes dimin": "リンパ節の縮小",
+        "nodes enlar": "リンパ節の腫大"
+      },
+      "changes in lym": "リンパ管の変化",
+      "defect in node": "リンパ節の欠損",
+      "changes in node": "リンパ節の変化",
+      "changes in stru": "構造の変化",
+      "special forms": "特殊な形態",
+      "dislocation of": "転位",
+      "exclusion of": "除外",
+      "no": {
+        " of nodes in": "リンパ節の数"
+      },
+      "Category": "カテゴリ",
+      "normal find": "正常所見",
+      "metastases": "転移",
+      "malign lymph": "悪性リンパ腫",
+      "fibrosis": "線維症"
     }
   }
 }

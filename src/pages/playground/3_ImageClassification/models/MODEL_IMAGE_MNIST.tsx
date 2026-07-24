@@ -226,8 +226,24 @@ export default class MODEL_IMAGE_MNIST extends I_MODEL_IMAGE_CLASSIFICATION {
       const lastLayerName = orderReversed[0]
       const lastLayerData = activations.layers[lastLayerName]
 
+      // LRP se inicializa con el LOGIT pre-softmax de la clase objetivo,
+      // no con las probabilidades (Montavon et al. 2019, §10.2.1).
+      // Como la softmax va fusionada en la última Dense, recalculamos z = x·W + b.
+      const lastLayer = model.getLayer(lastLayerName)
+      const prevData = activations.layers[orderReversed[1]]
+      const xLast = tfjs.tensor(prevData.data, prevData.shape)
+      const [wLast, bLast] = lastLayer.getWeights()
+      let logits: tfjs.Tensor = xLast.matMul(wLast)
+      if (bLast) logits = logits.add(bLast) // Podría no tener sesgo
+
+        // Máscara one-hot sobre la clase predicha: solo R_c ≠ 0
+      const probs = tfjs.tensor(lastLayerData.data, lastLayerData.shape)
+      const targetClass = probs.argMax(-1)  
+      const numClasses = logits.shape[logits.shape.length - 1] as number
+      const mask = tfjs.oneHot(targetClass, numClasses).cast('float32')
+
       // Inicializar relevancia con la salida de la última capa
-      let R: tfjs.Tensor = tfjs.tensor(lastLayerData.data, lastLayerData.shape)
+      let R: tfjs.Tensor = logits.mul(mask)
 
       console.log(
         `\n=== Iniciando LRP Propagation con regla: ${options.rule || 'epsilon'} ===`,

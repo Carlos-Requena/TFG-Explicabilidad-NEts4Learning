@@ -518,9 +518,9 @@ export function applyLRP(params: ApplyLRPParams): tfjs.Tensor {
 
   const {
     rule = 'epsilon',
-    epsilon = 1e-9,
-    alpha = 0.5,
-    beta = 0.5,
+    epsilon = 0.01,
+    alpha = 2,
+    beta = 1,
   } = options;
 
   switch (layerType) {

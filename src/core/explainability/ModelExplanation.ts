@@ -9,7 +9,8 @@ import * as tf from '@tensorflow/tfjs';
  */
 export const myModelWrapper = (modelRef: any) => {
   return async (x: any[]): Promise<number[][]> => {
-    console.log('Wrapper - iniciando predicción con input:', x);
+    // Sin logs aquí: este wrapper se llama una vez por cada predicción de KernelSHAP
+    // (N instancias × nSamples × background), así que loguear satura la consola y ralentiza.
     if (!x || x.length === 0) return [];
     const numInstances = x.length;
     const numFeatures = x[0].length;
@@ -40,8 +41,6 @@ export const myModelWrapper = (modelRef: any) => {
         const predictionTensor = model.predict(inputTensor);
         // predictionTensor.array() devuelve Promise<number[][]>
         const predictionData = await predictionTensor.array();
-
-        console.log('Predicción del wrapper:', predictionData);
 
         // Liberamos memoria
         inputTensor.dispose();

@@ -41,7 +41,7 @@ export const objectDetectionWrapper = (
   return async (x: number[][]): Promise<number[][]> => {
     if (!x || x.length === 0) return [];
 
-    console.log('Wrapper - input perturbation vectors:', x);
+    // Sin logs: este wrapper se llama una vez por perturbación de KernelSHAP (hot path).
 
     // imgoriginal ---> tensor
     const imgToTensor = tf.tidy(() => {
@@ -178,7 +178,6 @@ export const objectDetectionWrapper = (
       if (imgToTensor.dispose) imgToTensor.dispose();
     }
 
-    console.log('Wrapper - predicción final:', batchVectors);
     return batchVectors;
   };
 };
