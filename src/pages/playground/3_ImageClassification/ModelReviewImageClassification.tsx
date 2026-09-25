@@ -537,7 +537,7 @@ export default function ModelReviewImageClassification({ dataset }: ModelReviewI
 
             <Card className={"mt-3"} data-testid={"explainability-card"}>
               <Card.Header className="d-flex justify-content-between align-items-center">
-                <h3>{t("ui.explain.title")}{isMNIST() ? " (LRP)" : ""}</h3>
+                <h3>{t("pages.playground.0-tabular-classification.general.explain-panel-title")} ({isMNIST() || explainMethod === "lrp" ? "LRP" : "SHAP"})</h3>
                 {!isMNIST() && (
                   <div className="d-flex align-items-center gap-2">
                     <span style={{ fontSize: "0.9rem" }}>{t("ui.explain.method", { defaultValue: "Método" })}:</span>

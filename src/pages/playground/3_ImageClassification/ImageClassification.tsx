@@ -462,7 +462,7 @@ export default function ImageClassification(props: ImageClassificationProps_t) {
           <Col xl={12}>
             <Card data-testid={'explainability-card'}>
               <Card.Header>
-                <h3>{t('ui.explain.title')} (LRP)</h3>
+                <h3>{t('pages.playground.0-tabular-classification.general.explain-panel-title')} (LRP)</h3>
               </Card.Header>
               <Card.Body>
                 {showExplain && galleryImages.length > 0 && (
